@@ -1,0 +1,24 @@
+# Backend
+backend/target/
+backend/logs/
+backend/uploads/
+backend/src/main/resources/application-local.yml
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env.*.local
+.npm-cache/
+
+# IDE and OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+.tmp-*

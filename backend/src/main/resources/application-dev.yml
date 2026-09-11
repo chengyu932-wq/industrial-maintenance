@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    username: ${DB_USERNAME:maintenance_app}
+    password: ${DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 0
+
+logging:
+  level:
+    root: INFO
+    com.cq.maintenance: DEBUG
