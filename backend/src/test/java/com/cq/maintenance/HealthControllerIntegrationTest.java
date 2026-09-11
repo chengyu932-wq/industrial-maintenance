@@ -11,6 +11,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import com.cq.maintenance.security.AuthMapper;
+import com.cq.maintenance.equipment.mapper.EquipmentMapper;
+import com.cq.maintenance.organization.mapper.OrganizationMapper;
 
 @SpringBootTest(properties = {
     "app.auth.jwt-secret=test-only-secret-that-is-at-least-32-bytes-long",
@@ -26,6 +28,8 @@ class HealthControllerIntegrationTest {
 
     @MockitoBean
     private AuthMapper authMapper;
+    @MockitoBean private EquipmentMapper equipmentMapper;
+    @MockitoBean private OrganizationMapper organizationMapper;
 
     @Test
     void shouldReturnPublicHealthResponse() throws Exception {

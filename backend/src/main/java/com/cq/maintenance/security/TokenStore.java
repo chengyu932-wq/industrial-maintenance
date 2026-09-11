@@ -16,7 +16,10 @@ public class TokenStore {
 
     public void savePair(Long userId, JwtService.IssuedToken access, JwtService.IssuedToken refresh) {
         redis.opsForValue().set(refreshKey(userId, refresh.tokenId()), refresh.value(), remaining(refresh.expiresAt()));
-        redis.opsForValue().set(SESSION_PREFIX + access.tokenId(), userId + ":" + refresh.tokenId(), remaining(access.expiresAt()));
+        Duration accessTtl = remaining(access.expiresAt());
+        if (!accessTtl.isZero()) {
+            redis.opsForValue().set(SESSION_PREFIX + access.tokenId(), userId + ":" + refresh.tokenId(), accessTtl);
+        }
     }
 
     public boolean isRefreshValid(JwtService.TokenClaims claims, String rawToken) {

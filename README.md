@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-已完成基础工程、数据库 SQL，以及第 3 阶段登录认证与 RBAC 基础代码。认证采用 Spring Security、JWT 双 Token 与 Redis，前端包含登录页、路由守卫、自动刷新、动态菜单和按钮权限基础。
+已完成基础工程、数据库 SQL、第 3 阶段认证与 RBAC，以及第 4 阶段组织结构、设备类型、设备台账和设备生命周期状态管理。设备模块具备后端分页与组合查询、详情聚合、二维码、Excel 模板/导入/导出、状态履历、事务状态机和基于角色/组织关系的数据权限；前端已接入组织管理、设备列表和设备详情页面。
 
 ## 技术栈
 
@@ -82,6 +82,7 @@ CAPTCHA_TTL
 LOGIN_FAILURE_WINDOW
 LOGIN_LOCK_TTL
 MAX_LOGIN_FAILURES
+PUBLIC_BASE_URL（二维码中的前端公开地址）
 ```
 
 健康检查：
@@ -109,7 +110,21 @@ npm run dev
 sql/00_create_database.sql
 ```
 
-按 [sql/README.md](sql/README.md) 中的顺序执行全部正式脚本。认证联调时可额外执行 `sql/11_dev_auth_seed.sql`；五种角色测试账号统一使用仅供开发演示的密码 `DevOnly@123`。
+按 [sql/README.md](sql/README.md) 中的顺序执行全部正式脚本。认证联调时可额外执行 `sql/11_dev_auth_seed.sql`、`sql/12_stage4_permissions.sql` 和 `sql/13_stage4_demo_data.sql`；五种角色测试账号统一使用仅供开发演示的密码 `DevOnly@123`。
+
+## 第 4 阶段验证
+
+```powershell
+cd backend
+.\mvnw.cmd test
+# 本机已有 MySQL 数据库时，额外运行真实 SQL/事务集成测试
+.\mvnw.cmd --% -Dstage4.db-tests=true test
+
+cd ..\frontend
+npm run build
+```
+
+真实数据库测试使用被 Git 忽略的 `application-local.yml` 提供本机凭据，不应提交该文件。浏览器联调截图保存在 `docs/evidence/`。
 
 ## 认证说明
 

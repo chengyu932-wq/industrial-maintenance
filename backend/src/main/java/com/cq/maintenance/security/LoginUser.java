@@ -6,7 +6,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 public record LoginUser(Long userId, String username, String realName, String status,
                         List<String> roleCodes, List<String> permissions, List<Long> teamIds,
-                        List<Long> authorizedWarehouseIds) implements Serializable {
+                        Long workshopId, List<Long> authorizedWarehouseIds) implements Serializable {
     public List<SimpleGrantedAuthority> authorities() {
         return permissions.stream().map(SimpleGrantedAuthority::new).toList();
     }

@@ -19,6 +19,6 @@ public class CurrentUserService {
         List<Long> teamIds = user.getTeamId() == null ? List.of() : List.of(user.getTeamId());
         return new LoginUser(user.getId(), user.getUsername(), user.getRealName(), user.getStatus(),
             authMapper.findRoleCodes(userId), authMapper.findPermissions(userId), teamIds,
-            authMapper.findWarehouseIds(userId));
+            user.getWorkshopId(), authMapper.findWarehouseIds(userId));
     }
 }

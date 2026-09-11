@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.cq.maintenance.security.AuthMapper;
+import com.cq.maintenance.equipment.mapper.EquipmentMapper;
+import com.cq.maintenance.organization.mapper.OrganizationMapper;
 import com.cq.maintenance.system.entity.SysUser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,6 +38,8 @@ class AuthExpiryIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private StringRedisTemplate redis;
     @MockitoBean private AuthMapper authMapper;
+    @MockitoBean private EquipmentMapper equipmentMapper;
+    @MockitoBean private OrganizationMapper organizationMapper;
 
     @BeforeEach
     void setUp() {

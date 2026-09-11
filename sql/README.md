@@ -18,6 +18,8 @@
 | 10 | `09_init_data.sql` | 五类角色和三条开发默认 SLA 规则 |
 | 11 | `10_verify_database.sql` | 表数量、引擎、字符集、初始数据和重复业务键检查 |
 | 12 | `11_dev_auth_seed.sql` | 可选：五种角色开发账号、禁用账号和认证阶段菜单权限 |
+| 13 | `12_stage4_permissions.sql` | 第4阶段组织与设备菜单、按钮权限（现有库升级也需执行） |
+| 14 | `13_stage4_demo_data.sql` | 可选：第4阶段组织、设备类型与设备演示数据 |
 
 在 MySQL 客户端中依次执行：
 
@@ -33,8 +35,10 @@ SOURCE D:/BS/industrial-maintenance/sql/07_schema_knowledge.sql;
 SOURCE D:/BS/industrial-maintenance/sql/08_schema_support.sql;
 SOURCE D:/BS/industrial-maintenance/sql/09_init_data.sql;
 SOURCE D:/BS/industrial-maintenance/sql/10_verify_database.sql;
+SOURCE D:/BS/industrial-maintenance/sql/12_stage4_permissions.sql;
 -- 仅本地开发/答辩演示时执行：
 SOURCE D:/BS/industrial-maintenance/sql/11_dev_auth_seed.sql;
+SOURCE D:/BS/industrial-maintenance/sql/13_stage4_demo_data.sql;
 ```
 
 ## 初始化与重复执行

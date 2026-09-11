@@ -21,4 +21,10 @@ public class UserController {
     public ApiResponse<List<UserSummaryVO>> list() {
         return ApiResponse.success(authMapper.findUsers());
     }
+
+    @GetMapping("/options")
+    @PreAuthorize("hasAnyAuthority('equipment:add','equipment:update')")
+    public ApiResponse<List<UserSummaryVO>> options() {
+        return ApiResponse.success(authMapper.findUsers().stream().filter(u -> "ENABLED".equals(u.status())).toList());
+    }
 }

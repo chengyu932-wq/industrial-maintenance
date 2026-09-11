@@ -10,6 +10,9 @@ const router = createRouter({
     { path: '/', component: () => import('../layout/AppLayout.vue'), children: [
       { path: '', name: 'home', component: () => import('../views/HomeView.vue') },
       { path: 'system/users', name: 'users', component: () => import('../views/system/UserListView.vue'), meta: { permission: 'system:user:list' } },
+      { path: 'organization', name: 'organization', component: () => import('../views/organization/OrganizationView.vue'), meta: { title: '组织结构', permission: 'organization:list' } },
+      { path: 'equipment', name: 'equipment', component: () => import('../views/equipment/EquipmentListView.vue'), meta: { title: '设备台账', permission: 'equipment:list' } },
+      { path: 'equipment/:id', name: 'equipment-detail', component: () => import('../views/equipment/EquipmentDetailView.vue'), meta: { title: '设备详情', permission: 'equipment:view' } },
     ] },
     { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('../views/error/NotFoundView.vue'), meta: { public: true } },
   ],

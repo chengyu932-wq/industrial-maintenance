@@ -1,0 +1,17 @@
+import http from './http'
+export const page = (params) => http.get('/equipment', { params })
+export const detail = (id) => http.get(`/equipment/${id}`)
+export const create = (data) => http.post('/equipment', data)
+export const update = (id, data) => http.put(`/equipment/${id}`, data)
+export const changeStatus = (id, data) => http.post(`/equipment/${id}/status`, data)
+export const scrap = (id, data) => http.post(`/equipment/${id}/scrap`, data)
+export const history = (id) => http.get(`/equipment/${id}/history`)
+export const qrCode = (id) => http.get(`/equipment/${id}/qrcode`, { responseType: 'blob' })
+export const types = () => http.get('/equipment-types')
+export const createType = (data) => http.post('/equipment-types', data)
+export const updateType = (id, data) => http.put(`/equipment-types/${id}`, data)
+export const deleteType = (id) => http.delete(`/equipment-types/${id}`)
+export const exportFile = (params) => http.get('/equipment/export', { params, responseType: 'blob' })
+export const importFile = (file) => { const data = new FormData(); data.append('file', file); return http.post('/equipment/import', data) }
+export const importTemplate = () => http.get('/equipment/import-template', { responseType: 'blob' })
+export const userOptions = () => http.get('/users/options')

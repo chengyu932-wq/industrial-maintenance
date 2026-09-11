@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.cq.maintenance.security.AuthMapper;
+import com.cq.maintenance.equipment.mapper.EquipmentMapper;
+import com.cq.maintenance.organization.mapper.OrganizationMapper;
 import com.cq.maintenance.system.entity.SysUser;
 import com.cq.maintenance.system.vo.MenuVO;
 import com.cq.maintenance.system.vo.UserSummaryVO;
@@ -39,6 +41,8 @@ class AuthFlowIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private StringRedisTemplate redis;
     @MockitoBean private AuthMapper authMapper;
+    @MockitoBean private EquipmentMapper equipmentMapper;
+    @MockitoBean private OrganizationMapper organizationMapper;
 
     @BeforeEach
     void setUp() {
@@ -55,7 +59,7 @@ class AuthFlowIntegrationTest {
         when(authMapper.selectById(3L)).thenReturn(disabled);
         when(authMapper.findRoleCodes(1L)).thenReturn(List.of("ADMIN"));
         when(authMapper.findRoleCodes(2L)).thenReturn(List.of("ENGINEER"));
-        when(authMapper.findPermissions(1L)).thenReturn(List.of("system:user:list", "system:user:add"));
+        when(authMapper.findPermissions(1L)).thenReturn(List.of("system:user:list", "system:user:add", "equipment:add"));
         when(authMapper.findPermissions(2L)).thenReturn(List.of("workspace:engineer:view"));
         when(authMapper.findMenus(anyLong())).thenReturn(List.of(new MenuVO(1L, 0L, "MENU", "工作台", "/", "HomeView", null, 1)));
         when(authMapper.findWarehouseIds(anyLong())).thenReturn(List.of());
@@ -118,6 +122,15 @@ class AuthFlowIntegrationTest {
             .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value(40300));
         mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + engineer.access()))
             .andExpect(status().isOk());
+    }
+
+    @Test
+    void equipmentCreateShouldReturn403WithoutPermission() throws Exception {
+        Tokens engineer = successfulLogin("engineer");
+        mockMvc.perform(post("/api/equipment").header("Authorization", "Bearer " + engineer.access())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"equipmentNo\":\"EQ-403\",\"equipmentName\":\"权限测试设备\",\"typeId\":1,\"stationId\":1}"))
+            .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value(40300));
     }
 
     @Test
