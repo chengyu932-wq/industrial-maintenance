@@ -16,3 +16,5 @@
 - `stage5-engineer-submitted.png`：工程师填写真实维修记录并提交验收；
 - `stage5-completed.png`：验收退回、再次维修后最终完成及完整流转日志。
 - `stage5-cancelled.png`：报修人取消待派单工单并明确将设备转为停用。
+
+第 6 阶段已完成 UI 统一与双分辨率浏览器验证，详细修改内容、实测表格和论文截图建议见 [UI优化结果](UI优化结果.md)。对应截图保存在 `evidence/stage6-*.png`。

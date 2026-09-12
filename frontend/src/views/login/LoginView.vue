@@ -44,7 +44,7 @@ onMounted(loadCaptcha)
       <h1>工业设备运维管理系统</h1>
       <p>统一管理设备、人员与运维流程</p>
     </section>
-    <el-card class="login-card" shadow="always">
+    <section class="login-form-wrap"><el-card class="login-card" shadow="never">
       <template #header><strong>账号登录</strong></template>
       <el-form label-position="top" @keyup.enter="submit">
         <el-form-item label="账号"><el-input v-model.trim="form.username" autocomplete="username" /></el-form-item>
@@ -61,6 +61,6 @@ onMounted(loadCaptcha)
         <el-button type="primary" size="large" :loading="loading" class="login-submit" @click="submit">登录</el-button>
       </el-form>
       <p class="login-help">连续 5 次账号密码错误将锁定 10 分钟；验证码错误不累计次数。</p>
-    </el-card>
+    </el-card></section>
   </main>
 </template>

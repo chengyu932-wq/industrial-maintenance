@@ -1,40 +1,598 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, shallowRef } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import * as equipmentApi from '../../api/equipment'
-import * as organizationApi from '../../api/organization'
-import { useAuthStore } from '../../stores/auth'
-import { equipmentStatuses, manualStatusActions, statusLabel, statusTagType } from '../../utils/equipmentStatus'
+import { computed, onMounted, reactive, shallowRef } from "vue";
+import { useRouter } from "vue-router";
+import { ElMessage, ElMessageBox } from "element-plus";
+import * as equipmentApi from "../../api/equipment";
+import * as organizationApi from "../../api/organization";
+import { useAuthStore } from "../../stores/auth";
+import {
+  equipmentStatuses,
+  manualStatusActions,
+  statusLabel,
+  statusTagType,
+} from "../../utils/equipmentStatus";
 
-const router=useRouter();const auth=useAuthStore();const loading=shallowRef(false);const records=shallowRef<any[]>([]);const total=shallowRef(0)
-const types=shallowRef<any[]>([]);const workshops=shallowRef<any[]>([]);const lines=shallowRef<any[]>([]);const stations=shallowRef<any[]>([]);const teams=shallowRef<any[]>([]);const users=shallowRef<any[]>([])
-const query=reactive<any>({keyword:'',typeId:null,workshopId:null,lineId:null,stationId:null,status:null,responsibleUserId:null,page:1,size:10})
-const editor=reactive({visible:false,id:null as number|null,title:''});const form=reactive<any>({equipmentNo:'',equipmentName:'',typeId:null,model:'',manufacturer:'',specifications:'',manufactureDate:null,commissioningDate:null,responsibleUserId:null,responsibleTeamId:null,stationId:null,warrantyExpireDate:null})
-const typeDialog=reactive({visible:false,id:null as number|null});const typeForm=reactive<any>({typeCode:'',typeName:'',description:'',status:'ENABLED'})
-const formWorkshopId=shallowRef<number|null>(null);const formLineId=shallowRef<number|null>(null);const filteredLines=computed(()=>lines.value.filter(i=>!formWorkshopId.value||i.workshopId===formWorkshopId.value));const filteredStations=computed(()=>stations.value.filter(i=>!formLineId.value||i.lineId===formLineId.value))
-async function loadLookups(){types.value=(await equipmentApi.types()).data;if(auth.hasPermission('organization:list')){const [w,l,s]=await Promise.all([organizationApi.workshops({status:'ENABLED'}),organizationApi.lines({status:'ENABLED'}),organizationApi.stations({status:'ENABLED'})]);workshops.value=w.data;lines.value=l.data;stations.value=s.data}if(auth.hasPermission('equipment:add')||auth.hasPermission('equipment:update')){const [t,u]=await Promise.all([organizationApi.teams({status:'ENABLED'}),equipmentApi.userOptions()]);teams.value=t.data;users.value=u.data}}
-async function load(){loading.value=true;try{const r=await equipmentApi.page(query);records.value=r.data.records;total.value=r.data.total}catch(e:any){ElMessage.error(e.response?.data?.message||'设备查询失败')}finally{loading.value=false}}
-function search(){query.page=1;load()}function reset(){Object.assign(query,{keyword:'',typeId:null,workshopId:null,lineId:null,stationId:null,status:null,responsibleUserId:null,page:1,size:10});load()}
-function queryWorkshopChanged(){query.lineId=null;query.stationId=null}function queryLineChanged(){query.stationId=null}
-function emptyForm(){Object.assign(form,{equipmentNo:'',equipmentName:'',typeId:null,model:'',manufacturer:'',specifications:'',manufactureDate:null,commissioningDate:null,responsibleUserId:null,responsibleTeamId:null,stationId:null,warrantyExpireDate:null});formWorkshopId.value=null;formLineId.value=null}
-async function openEditor(row:any=null){emptyForm();editor.id=row?.id||null;editor.title=row?'修改设备':'新增设备';if(row){const d=(await equipmentApi.detail(row.id)).data;for(const k of Object.keys(form))form[k]=d[k]??null;formWorkshopId.value=d.workshopId;formLineId.value=d.lineId}editor.visible=true}
-function formWorkshopChanged(){formLineId.value=null;form.stationId=null}function formLineChanged(){form.stationId=null}
-async function save(){if(!form.equipmentNo||!form.equipmentName||!form.typeId||!form.stationId)return ElMessage.warning('请填写设备编号、名称、类型和工位');try{if(editor.id)await equipmentApi.update(editor.id,form);else await equipmentApi.create(form);editor.visible=false;ElMessage.success('保存成功');await load()}catch(e:any){ElMessage.error(e.response?.data?.message||'保存失败')}}
-async function changeState(row:any,target:any,label:string){try{const {value}=await ElMessageBox.prompt(`请输入${label}原因`,`设备${label}`,{inputPattern:/\S+/,inputErrorMessage:'原因不能为空',type:'warning'});await equipmentApi.changeStatus(row.id,{targetStatus:target,reason:value});ElMessage.success(`${label}成功`);await load()}catch(e:any){if(e!=='cancel')ElMessage.error(e.response?.data?.message||`${label}失败`)}}
-async function scrap(row:any){try{const {value}=await ElMessageBox.prompt('报废是终态，报废后不能恢复。请输入报废原因','确认报废',{confirmButtonText:'确认报废',inputPattern:/\S+/,inputErrorMessage:'原因不能为空',type:'error'});await equipmentApi.scrap(row.id,{reason:value});ElMessage.success('设备已报废');await load()}catch(e:any){if(e!=='cancel')ElMessage.error(e.response?.data?.message||'报废失败')}}
-function download(blob:Blob,name:string){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
-async function exportFile(){try{download(await equipmentApi.exportFile(query),'设备台账.xlsx')}catch{ElMessage.error('导出失败')}}
-async function template(){download(await equipmentApi.importTemplate(),'设备导入模板.xlsx')}
-function editType(row:any=null){typeDialog.id=row?.id||null;Object.assign(typeForm,row?{typeCode:row.typeCode,typeName:row.typeName,description:row.description,status:row.status}:{typeCode:'',typeName:'',description:'',status:'ENABLED'});typeDialog.visible=true}
-async function saveType(){if(!typeForm.typeCode||!typeForm.typeName)return ElMessage.warning('请填写类型编码和名称');try{if(typeDialog.id)await equipmentApi.updateType(typeDialog.id,typeForm);else await equipmentApi.createType(typeForm);typeDialog.visible=false;types.value=(await equipmentApi.types()).data;ElMessage.success('设备类型已保存')}catch(e:any){ElMessage.error(e.response?.data?.message||'保存失败')}}
-async function removeType(row:any){try{await ElMessageBox.confirm(`确定删除设备类型“${row.typeName}”吗？已被设备引用时系统会拒绝。`,'删除确认',{type:'warning'});await equipmentApi.deleteType(row.id);types.value=(await equipmentApi.types()).data}catch(e:any){if(e!=='cancel')ElMessage.error(e.response?.data?.message||'删除失败')}}
-async function importFile(options:any){try{const r=await equipmentApi.importFile(options.file);const d=r.data;d.failedRows?ElMessage.warning(`导入完成：成功 ${d.successRows} 条，失败 ${d.failedRows} 条；${d.errors.map((i:any)=>`第${i.row}行 ${i.message}`).join('；')}`):ElMessage.success(`成功导入 ${d.successRows} 条`);await load()}catch(e:any){ElMessage.error(e.response?.data?.message||'导入失败')}}
-onMounted(async()=>{await loadLookups();await load()})
+const router = useRouter();
+const auth = useAuthStore();
+const loading = shallowRef(false);
+const saving = shallowRef(false);
+const records = shallowRef<any[]>([]);
+const total = shallowRef(0);
+const types = shallowRef<any[]>([]);
+const workshops = shallowRef<any[]>([]);
+const lines = shallowRef<any[]>([]);
+const stations = shallowRef<any[]>([]);
+const teams = shallowRef<any[]>([]);
+const users = shallowRef<any[]>([]);
+const query = reactive<any>({
+  keyword: "",
+  typeId: null,
+  workshopId: null,
+  lineId: null,
+  stationId: null,
+  status: null,
+  responsibleUserId: null,
+  page: 1,
+  size: 10,
+});
+const editor = reactive({
+  visible: false,
+  id: null as number | null,
+  title: "",
+});
+const form = reactive<any>({
+  equipmentNo: "",
+  equipmentName: "",
+  typeId: null,
+  model: "",
+  manufacturer: "",
+  specifications: "",
+  manufactureDate: null,
+  commissioningDate: null,
+  responsibleUserId: null,
+  responsibleTeamId: null,
+  stationId: null,
+  warrantyExpireDate: null,
+});
+const typeDialog = reactive({ visible: false, id: null as number | null });
+const typeForm = reactive<any>({
+  typeCode: "",
+  typeName: "",
+  description: "",
+  status: "ENABLED",
+});
+const formWorkshopId = shallowRef<number | null>(null);
+const formLineId = shallowRef<number | null>(null);
+const filteredLines = computed(() =>
+  lines.value.filter(
+    (i) => !formWorkshopId.value || i.workshopId === formWorkshopId.value,
+  ),
+);
+const filteredStations = computed(() =>
+  stations.value.filter(
+    (i) => !formLineId.value || i.lineId === formLineId.value,
+  ),
+);
+async function loadLookups() {
+  types.value = (await equipmentApi.types()).data;
+  if (auth.hasPermission("organization:list")) {
+    const [w, l, s] = await Promise.all([
+      organizationApi.workshops({ status: "ENABLED" }),
+      organizationApi.lines({ status: "ENABLED" }),
+      organizationApi.stations({ status: "ENABLED" }),
+    ]);
+    workshops.value = w.data;
+    lines.value = l.data;
+    stations.value = s.data;
+  }
+  if (
+    auth.hasPermission("equipment:add") ||
+    auth.hasPermission("equipment:update")
+  ) {
+    const [t, u] = await Promise.all([
+      organizationApi.teams({ status: "ENABLED" }),
+      equipmentApi.userOptions(),
+    ]);
+    teams.value = t.data;
+    users.value = u.data;
+  }
+}
+async function load() {
+  loading.value = true;
+  try {
+    const r = await equipmentApi.page(query);
+    records.value = r.data.records;
+    total.value = r.data.total;
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.message || "设备查询失败");
+  } finally {
+    loading.value = false;
+  }
+}
+function search() {
+  query.page = 1;
+  load();
+}
+function reset() {
+  Object.assign(query, {
+    keyword: "",
+    typeId: null,
+    workshopId: null,
+    lineId: null,
+    stationId: null,
+    status: null,
+    responsibleUserId: null,
+    page: 1,
+    size: 10,
+  });
+  load();
+}
+function queryWorkshopChanged() {
+  query.lineId = null;
+  query.stationId = null;
+}
+function queryLineChanged() {
+  query.stationId = null;
+}
+function emptyForm() {
+  Object.assign(form, {
+    equipmentNo: "",
+    equipmentName: "",
+    typeId: null,
+    model: "",
+    manufacturer: "",
+    specifications: "",
+    manufactureDate: null,
+    commissioningDate: null,
+    responsibleUserId: null,
+    responsibleTeamId: null,
+    stationId: null,
+    warrantyExpireDate: null,
+  });
+  formWorkshopId.value = null;
+  formLineId.value = null;
+}
+async function openEditor(row: any = null) {
+  emptyForm();
+  editor.id = row?.id || null;
+  editor.title = row ? "修改设备" : "新增设备";
+  if (row) {
+    const d = (await equipmentApi.detail(row.id)).data;
+    for (const k of Object.keys(form)) form[k] = d[k] ?? null;
+    formWorkshopId.value = d.workshopId;
+    formLineId.value = d.lineId;
+  }
+  editor.visible = true;
+}
+function formWorkshopChanged() {
+  formLineId.value = null;
+  form.stationId = null;
+}
+function formLineChanged() {
+  form.stationId = null;
+}
+async function save() {
+  if (
+    !form.equipmentNo ||
+    !form.equipmentName ||
+    !form.typeId ||
+    !form.stationId
+  )
+    return ElMessage.warning("请填写设备编号、名称、类型和工位");
+  saving.value = true;
+  try {
+    if (editor.id) await equipmentApi.update(editor.id, form);
+    else await equipmentApi.create(form);
+    editor.visible = false;
+    ElMessage.success("保存成功");
+    await load();
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.message || "保存失败");
+  } finally {
+    saving.value = false;
+  }
+}
+async function changeState(row: any, target: any, label: string) {
+  try {
+    const { value } = await ElMessageBox.prompt(
+      `请输入${label}原因`,
+      `设备${label}`,
+      {
+        inputPattern: /\S+/,
+        inputErrorMessage: "原因不能为空",
+        type: "warning",
+      },
+    );
+    await equipmentApi.changeStatus(row.id, {
+      targetStatus: target,
+      reason: value,
+    });
+    ElMessage.success(`${label}成功`);
+    await load();
+  } catch (e: any) {
+    if (e !== "cancel")
+      ElMessage.error(e.response?.data?.message || `${label}失败`);
+  }
+}
+async function scrap(row: any) {
+  try {
+    const { value } = await ElMessageBox.prompt(
+      "报废是终态，报废后不能恢复。请输入报废原因",
+      "确认报废",
+      {
+        confirmButtonText: "确认报废",
+        inputPattern: /\S+/,
+        inputErrorMessage: "原因不能为空",
+        type: "error",
+      },
+    );
+    await equipmentApi.scrap(row.id, { reason: value });
+    ElMessage.success("设备已报废");
+    await load();
+  } catch (e: any) {
+    if (e !== "cancel")
+      ElMessage.error(e.response?.data?.message || "报废失败");
+  }
+}
+function download(blob: Blob, name: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+async function exportFile() {
+  try {
+    download(await equipmentApi.exportFile(query), "设备台账.xlsx");
+  } catch {
+    ElMessage.error("导出失败");
+  }
+}
+async function template() {
+  download(await equipmentApi.importTemplate(), "设备导入模板.xlsx");
+}
+function editType(row: any = null) {
+  typeDialog.id = row?.id || null;
+  Object.assign(
+    typeForm,
+    row
+      ? {
+          typeCode: row.typeCode,
+          typeName: row.typeName,
+          description: row.description,
+          status: row.status,
+        }
+      : { typeCode: "", typeName: "", description: "", status: "ENABLED" },
+  );
+  typeDialog.visible = true;
+}
+async function saveType() {
+  if (!typeForm.typeCode || !typeForm.typeName)
+    return ElMessage.warning("请填写类型编码和名称");
+  saving.value = true;
+  try {
+    if (typeDialog.id) await equipmentApi.updateType(typeDialog.id, typeForm);
+    else await equipmentApi.createType(typeForm);
+    typeDialog.visible = false;
+    types.value = (await equipmentApi.types()).data;
+    ElMessage.success("设备类型已保存");
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.message || "保存失败");
+  } finally {
+    saving.value = false;
+  }
+}
+async function removeType(row: any) {
+  try {
+    await ElMessageBox.confirm(
+      `确定删除设备类型“${row.typeName}”吗？已被设备引用时系统会拒绝。`,
+      "删除确认",
+      { type: "warning" },
+    );
+    await equipmentApi.deleteType(row.id);
+    types.value = (await equipmentApi.types()).data;
+  } catch (e: any) {
+    if (e !== "cancel")
+      ElMessage.error(e.response?.data?.message || "删除失败");
+  }
+}
+async function importFile(options: any) {
+  try {
+    const r = await equipmentApi.importFile(options.file);
+    const d = r.data;
+    d.failedRows
+      ? ElMessage.warning(
+          `导入完成：成功 ${d.successRows} 条，失败 ${d.failedRows} 条；${d.errors.map((i: any) => `第${i.row}行 ${i.message}`).join("；")}`,
+        )
+      : ElMessage.success(`成功导入 ${d.successRows} 条`);
+    await load();
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.message || "导入失败");
+  }
+}
+onMounted(async () => {
+  await loadLookups();
+  await load();
+});
 </script>
 
-<template><section class="module-page"><header class="module-header"><div><p class="eyebrow">EQUIPMENT ASSET REGISTER</p><h1>设备台账</h1><p>组织位置、责任信息与生命周期状态统一管理。</p></div><div class="header-actions"><el-button v-permission="'equipment:type:manage'" @click="editType()">类型管理</el-button><el-upload v-permission="'equipment:import'" :show-file-list="false" accept=".xlsx" :http-request="importFile"><el-button>导入</el-button></el-upload><el-button v-permission="'equipment:import'" @click="template">模板</el-button><el-button v-permission="'equipment:export'" @click="exportFile">导出</el-button><el-button v-permission="'equipment:add'" type="primary" @click="openEditor()">新增设备</el-button></div></header>
-<el-card shadow="never" class="filter-card"><el-form inline><el-form-item label="关键字"><el-input v-model="query.keyword" clearable placeholder="编号/名称" @keyup.enter="search"/></el-form-item><el-form-item label="类型"><el-select v-model="query.typeId" clearable><el-option v-for="i in types" :key="i.id" :label="i.typeName" :value="i.id"/></el-select></el-form-item><el-form-item v-if="workshops.length" label="车间"><el-select v-model="query.workshopId" clearable @change="queryWorkshopChanged"><el-option v-for="i in workshops" :key="i.id" :label="i.workshopName" :value="i.id"/></el-select></el-form-item><el-form-item label="状态"><el-select v-model="query.status" clearable><el-option v-for="(i,k) in equipmentStatuses" :key="k" :label="i.label" :value="k"/></el-select></el-form-item><el-form-item><el-button type="primary" @click="search">查询</el-button><el-button @click="reset">重置</el-button></el-form-item></el-form></el-card>
-<el-card shadow="never"><el-table v-loading="loading" :data="records" stripe><el-table-column prop="equipmentNo" label="设备编号" min-width="150"/><el-table-column prop="equipmentName" label="设备名称" min-width="150"/><el-table-column prop="typeName" label="类型" min-width="110"/><el-table-column label="位置" min-width="230"><template #default="{row}">{{ row.workshopName }} / {{ row.lineName }} / {{ row.stationName }}</template></el-table-column><el-table-column prop="responsibleUserName" label="责任人" width="100"/><el-table-column label="状态" width="96"><template #default="{row}"><el-tag :type="statusTagType(row.status)">{{ statusLabel(row.status) }}</el-tag></template></el-table-column><el-table-column label="操作" fixed="right" min-width="250"><template #default="{row}"><el-button link type="primary" @click="router.push(`/equipment/${row.id}`)">查看</el-button><el-button v-permission="'equipment:update'" link type="primary" :disabled="row.status==='SCRAPPED'" @click="openEditor(row)">编辑</el-button><el-button v-for="a in manualStatusActions(row.status)" :key="a.code" v-permission="'equipment:status'" link type="warning" @click="changeState(row,a.code,a.label)">{{a.label}}</el-button><el-button v-if="['FAULT','REPAIRING','STOPPED'].includes(row.status)" v-permission="'equipment:scrap'" link type="danger" @click="scrap(row)">报废</el-button></template></el-table-column></el-table><div class="pagination-row"><el-pagination v-model:current-page="query.page" v-model:page-size="query.size" :total="total" layout="total, sizes, prev, pager, next" @change="load"/></div></el-card>
-<el-dialog v-model="editor.visible" :title="editor.title" width="760px"><el-form label-width="100px" class="equipment-form"><el-form-item label="设备编号"><el-input v-model="form.equipmentNo" maxlength="50"/></el-form-item><el-form-item label="设备名称"><el-input v-model="form.equipmentName" maxlength="100"/></el-form-item><el-form-item label="设备类型"><el-select v-model="form.typeId" style="width:100%"><el-option v-for="i in types.filter(t=>t.status==='ENABLED')" :key="i.id" :label="i.typeName" :value="i.id"/></el-select></el-form-item><el-form-item label="型号"><el-input v-model="form.model"/></el-form-item><el-form-item label="厂商"><el-input v-model="form.manufacturer"/></el-form-item><el-form-item label="责任人"><el-select v-model="form.responsibleUserId" clearable style="width:100%"><el-option v-for="i in users" :key="i.id" :label="i.realName" :value="i.id"/></el-select></el-form-item><el-form-item label="负责班组"><el-select v-model="form.responsibleTeamId" clearable style="width:100%"><el-option v-for="i in teams" :key="i.id" :label="i.teamName" :value="i.id"/></el-select></el-form-item><el-form-item label="所属车间"><el-select v-model="formWorkshopId" style="width:100%" @change="formWorkshopChanged"><el-option v-for="i in workshops" :key="i.id" :label="i.workshopName" :value="i.id"/></el-select></el-form-item><el-form-item label="所属产线"><el-select v-model="formLineId" style="width:100%" @change="formLineChanged"><el-option v-for="i in filteredLines" :key="i.id" :label="i.lineName" :value="i.id"/></el-select></el-form-item><el-form-item label="具体工位"><el-select v-model="form.stationId" style="width:100%"><el-option v-for="i in filteredStations" :key="i.id" :label="i.stationName" :value="i.id"/></el-select></el-form-item><el-form-item label="出厂日期"><el-date-picker v-model="form.manufactureDate" value-format="YYYY-MM-DD"/></el-form-item><el-form-item label="启用日期"><el-date-picker v-model="form.commissioningDate" value-format="YYYY-MM-DD"/></el-form-item><el-form-item label="保修到期"><el-date-picker v-model="form.warrantyExpireDate" value-format="YYYY-MM-DD"/></el-form-item><el-form-item label="规格参数" class="full"><el-input v-model="form.specifications" type="textarea" :rows="3"/></el-form-item></el-form><template #footer><el-button @click="editor.visible=false">取消</el-button><el-button type="primary" @click="save">保存</el-button></template></el-dialog>
-<el-dialog v-model="typeDialog.visible" :title="typeDialog.id ? '修改设备类型' : '设备类型管理'" width="650px"><el-table v-if="!typeDialog.id" :data="types" size="small"><el-table-column prop="typeCode" label="编码"/><el-table-column prop="typeName" label="名称"/><el-table-column prop="status" label="状态"/><el-table-column label="操作"><template #default="{row}"><el-button link type="primary" @click="editType(row)">编辑</el-button><el-button link type="danger" @click="removeType(row)">删除</el-button></template></el-table-column></el-table><el-divider/><el-form label-width="90px"><el-form-item label="类型编码"><el-input v-model="typeForm.typeCode"/></el-form-item><el-form-item label="类型名称"><el-input v-model="typeForm.typeName"/></el-form-item><el-form-item label="说明"><el-input v-model="typeForm.description"/></el-form-item><el-form-item label="状态"><el-radio-group v-model="typeForm.status"><el-radio value="ENABLED">启用</el-radio><el-radio value="DISABLED">停用</el-radio></el-radio-group></el-form-item></el-form><template #footer><el-button @click="typeDialog.visible=false">关闭</el-button><el-button v-if="typeDialog.id" @click="editType()">新建模式</el-button><el-button type="primary" @click="saveType">{{typeDialog.id?'保存修改':'新增类型'}}</el-button></template></el-dialog></section></template>
+<template>
+  <section class="module-page">
+    <header class="module-header">
+      <div>
+        <p class="eyebrow">EQUIPMENT ASSET REGISTER</p>
+        <h1>设备台账</h1>
+        <p>组织位置、责任信息与生命周期状态统一管理。</p>
+      </div>
+      <div class="header-actions">
+        <el-button v-permission="'equipment:type:manage'" @click="editType()"
+          >类型管理</el-button
+        ><el-upload
+          v-permission="'equipment:import'"
+          :show-file-list="false"
+          accept=".xlsx"
+          :http-request="importFile"
+          ><el-button>导入</el-button></el-upload
+        ><el-button v-permission="'equipment:import'" @click="template"
+          >模板</el-button
+        ><el-button v-permission="'equipment:export'" @click="exportFile"
+          >导出</el-button
+        ><el-button
+          v-permission="'equipment:add'"
+          type="primary"
+          @click="openEditor()"
+          >新增设备</el-button
+        >
+      </div>
+    </header>
+    <el-card shadow="never" class="filter-card"
+      ><el-form inline
+        ><el-form-item label="关键字"
+          ><el-input
+            v-model="query.keyword"
+            clearable
+            placeholder="编号/名称"
+            @keyup.enter="search" /></el-form-item
+        ><el-form-item label="类型"
+          ><el-select v-model="query.typeId" clearable
+            ><el-option
+              v-for="i in types"
+              :key="i.id"
+              :label="i.typeName"
+              :value="i.id" /></el-select></el-form-item
+        ><el-form-item v-if="workshops.length" label="车间"
+          ><el-select
+            v-model="query.workshopId"
+            clearable
+            @change="queryWorkshopChanged"
+            ><el-option
+              v-for="i in workshops"
+              :key="i.id"
+              :label="i.workshopName"
+              :value="i.id" /></el-select></el-form-item
+        ><el-form-item label="状态"
+          ><el-select v-model="query.status" clearable
+            ><el-option
+              v-for="(i, k) in equipmentStatuses"
+              :key="k"
+              :label="i.label"
+              :value="k" /></el-select></el-form-item
+        ><el-form-item class="filter-actions"
+          ><el-button type="primary" :loading="loading" @click="search"
+            >查询</el-button
+          ><el-button @click="reset">重置</el-button></el-form-item
+        ></el-form
+      ></el-card
+    >
+    <el-card shadow="never"
+      ><template #header
+        ><div class="card-title">
+          <strong>设备列表</strong
+          ><small>展示高频台账信息，完整履历请进入详情</small>
+        </div></template
+      ><el-table v-loading="loading" :data="records" stripe
+        ><template #empty
+          ><el-empty description="暂无设备数据" :image-size="72" /></template
+        ><el-table-column
+          prop="equipmentNo"
+          label="设备编号"
+          min-width="140"
+          show-overflow-tooltip
+        /><el-table-column
+          prop="equipmentName"
+          label="设备名称"
+          min-width="145"
+          show-overflow-tooltip
+        /><el-table-column
+          prop="typeName"
+          label="类型"
+          min-width="100"
+          show-overflow-tooltip
+        /><el-table-column label="位置" min-width="190" show-overflow-tooltip
+          ><template #default="{ row }"
+            >{{ row.workshopName }} / {{ row.lineName }} /
+            {{ row.stationName }}</template
+          ></el-table-column
+        ><el-table-column
+          prop="responsibleUserName"
+          label="责任人"
+          width="100"
+        /><el-table-column label="状态" width="96"
+          ><template #default="{ row }"
+            ><el-tag :type="statusTagType(row.status)">{{
+              statusLabel(row.status)
+            }}</el-tag></template
+          ></el-table-column
+        ><el-table-column label="操作" fixed="right" min-width="220"
+          ><template #default="{ row }"
+            ><el-button
+              link
+              type="primary"
+              @click="router.push(`/equipment/${row.id}`)"
+              >查看</el-button
+            ><el-button
+              v-permission="'equipment:update'"
+              link
+              :disabled="row.status === 'SCRAPPED'"
+              @click="openEditor(row)"
+              >编辑</el-button
+            ><el-button
+              v-for="a in manualStatusActions(row.status)"
+              :key="a.code"
+              v-permission="'equipment:status'"
+              link
+              type="warning"
+              @click="changeState(row, a.code, a.label)"
+              >{{ a.label }}</el-button
+            ><el-button
+              v-if="['FAULT', 'REPAIRING', 'STOPPED'].includes(row.status)"
+              v-permission="'equipment:scrap'"
+              link
+              type="danger"
+              @click="scrap(row)"
+              >报废</el-button
+            ></template
+          ></el-table-column
+        ></el-table
+      >
+      <div class="pagination-row">
+        <el-pagination
+          v-model:current-page="query.page"
+          v-model:page-size="query.size"
+          :total="total"
+          layout="total, sizes, prev, pager, next"
+          @change="load"
+        /></div
+    ></el-card>
+    <el-dialog v-model="editor.visible" :title="editor.title" width="760px"
+      ><el-form label-width="100px" class="equipment-form"
+        ><el-form-item label="设备编号"
+          ><el-input v-model="form.equipmentNo" maxlength="50" /></el-form-item
+        ><el-form-item label="设备名称"
+          ><el-input
+            v-model="form.equipmentName"
+            maxlength="100" /></el-form-item
+        ><el-form-item label="设备类型"
+          ><el-select v-model="form.typeId" style="width: 100%"
+            ><el-option
+              v-for="i in types.filter((t) => t.status === 'ENABLED')"
+              :key="i.id"
+              :label="i.typeName"
+              :value="i.id" /></el-select></el-form-item
+        ><el-form-item label="型号"
+          ><el-input v-model="form.model" /></el-form-item
+        ><el-form-item label="厂商"
+          ><el-input v-model="form.manufacturer" /></el-form-item
+        ><el-form-item label="责任人"
+          ><el-select
+            v-model="form.responsibleUserId"
+            clearable
+            style="width: 100%"
+            ><el-option
+              v-for="i in users"
+              :key="i.id"
+              :label="i.realName"
+              :value="i.id" /></el-select></el-form-item
+        ><el-form-item label="负责班组"
+          ><el-select
+            v-model="form.responsibleTeamId"
+            clearable
+            style="width: 100%"
+            ><el-option
+              v-for="i in teams"
+              :key="i.id"
+              :label="i.teamName"
+              :value="i.id" /></el-select></el-form-item
+        ><el-form-item label="所属车间"
+          ><el-select
+            v-model="formWorkshopId"
+            style="width: 100%"
+            @change="formWorkshopChanged"
+            ><el-option
+              v-for="i in workshops"
+              :key="i.id"
+              :label="i.workshopName"
+              :value="i.id" /></el-select></el-form-item
+        ><el-form-item label="所属产线"
+          ><el-select
+            v-model="formLineId"
+            style="width: 100%"
+            @change="formLineChanged"
+            ><el-option
+              v-for="i in filteredLines"
+              :key="i.id"
+              :label="i.lineName"
+              :value="i.id" /></el-select></el-form-item
+        ><el-form-item label="具体工位"
+          ><el-select v-model="form.stationId" style="width: 100%"
+            ><el-option
+              v-for="i in filteredStations"
+              :key="i.id"
+              :label="i.stationName"
+              :value="i.id" /></el-select></el-form-item
+        ><el-form-item label="出厂日期"
+          ><el-date-picker
+            v-model="form.manufactureDate"
+            value-format="YYYY-MM-DD" /></el-form-item
+        ><el-form-item label="启用日期"
+          ><el-date-picker
+            v-model="form.commissioningDate"
+            value-format="YYYY-MM-DD" /></el-form-item
+        ><el-form-item label="保修到期"
+          ><el-date-picker
+            v-model="form.warrantyExpireDate"
+            value-format="YYYY-MM-DD" /></el-form-item
+        ><el-form-item label="规格参数" class="full"
+          ><el-input
+            v-model="form.specifications"
+            type="textarea"
+            :rows="3" /></el-form-item></el-form
+      ><template #footer
+        ><el-button @click="editor.visible = false">取消</el-button
+        ><el-button type="primary" :loading="saving" @click="save"
+          >保存</el-button
+        ></template
+      ></el-dialog
+    >
+    <el-dialog
+      v-model="typeDialog.visible"
+      :title="typeDialog.id ? '修改设备类型' : '设备类型管理'"
+      width="650px"
+      ><el-table v-if="!typeDialog.id" :data="types" size="small"
+        ><el-table-column prop="typeCode" label="编码" /><el-table-column
+          prop="typeName"
+          label="名称"
+        /><el-table-column prop="status" label="状态" /><el-table-column
+          label="操作"
+          ><template #default="{ row }"
+            ><el-button link type="primary" @click="editType(row)"
+              >编辑</el-button
+            ><el-button link type="danger" @click="removeType(row)"
+              >删除</el-button
+            ></template
+          ></el-table-column
+        ></el-table
+      ><el-divider /><el-form label-width="90px"
+        ><el-form-item label="类型编码"
+          ><el-input v-model="typeForm.typeCode" /></el-form-item
+        ><el-form-item label="类型名称"
+          ><el-input v-model="typeForm.typeName" /></el-form-item
+        ><el-form-item label="说明"
+          ><el-input v-model="typeForm.description" /></el-form-item
+        ><el-form-item label="状态"
+          ><el-radio-group v-model="typeForm.status"
+            ><el-radio value="ENABLED">启用</el-radio
+            ><el-radio value="DISABLED">停用</el-radio></el-radio-group
+          ></el-form-item
+        ></el-form
+      ><template #footer
+        ><el-button @click="typeDialog.visible = false">关闭</el-button
+        ><el-button v-if="typeDialog.id" @click="editType()">新建模式</el-button
+        ><el-button type="primary" :loading="saving" @click="saveType">{{
+          typeDialog.id ? "保存修改" : "新增类型"
+        }}</el-button></template
+      ></el-dialog
+    >
+  </section>
+</template>

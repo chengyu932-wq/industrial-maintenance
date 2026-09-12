@@ -6,7 +6,7 @@ import { useAuthStore } from '../stores/auth'
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
-const menuItems = computed(() => auth.menus.filter((item: any) => item.menuType === 'MENU' && item.path))
+const menuItems = computed(() => auth.menus.filter((item: any) => item.menuType === 'MENU' && item.path && item.path !== '/'))
 
 async function signOut() { await auth.signOut(); await router.replace('/login') }
 </script>
@@ -14,7 +14,7 @@ async function signOut() { await auth.signOut(); await router.replace('/login') 
 <template>
   <el-container class="app-shell">
     <el-aside width="238px" class="app-sidebar">
-      <div class="app-logo"><span>IM</span><div><strong>工业运维</strong><small>管理系统</small></div></div>
+      <div class="app-logo"><span>IM</span><div><strong>工业运维</strong><small>EQUIPMENT CARE</small></div></div>
       <el-menu :default-active="route.path" router class="app-menu">
         <el-menu-item index="/"><span>工作台</span></el-menu-item>
         <el-menu-item v-for="item in menuItems" :key="item.id" :index="item.path">
@@ -24,9 +24,9 @@ async function signOut() { await auth.signOut(); await router.replace('/login') 
     </el-aside>
     <el-container>
       <el-header class="app-header">
-        <div><strong>{{ route.meta.title || '工业设备运维管理' }}</strong></div>
+        <div class="header-context"><small>Industrial Maintenance</small><strong>{{ route.meta.title || '工作台' }}</strong></div>
         <el-dropdown>
-          <span class="user-trigger">{{ auth.currentUser?.realName || auth.currentUser?.username }} ▾</span>
+          <span class="user-trigger" tabindex="0"><span class="user-avatar">{{ (auth.currentUser?.realName || auth.currentUser?.username || '用').slice(0, 1) }}</span>{{ auth.currentUser?.realName || auth.currentUser?.username }} ▾</span>
           <template #dropdown><el-dropdown-menu><el-dropdown-item @click="signOut">退出登录</el-dropdown-item></el-dropdown-menu></template>
         </el-dropdown>
       </el-header>
