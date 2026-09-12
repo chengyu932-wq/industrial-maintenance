@@ -16,7 +16,7 @@ public class EquipmentStateService {
     private static final Map<EquipmentStatus,Set<EquipmentStatus>> TRANSITIONS=Map.of(
         EquipmentStatus.PENDING,Set.of(EquipmentStatus.RUNNING),
         EquipmentStatus.RUNNING,Set.of(EquipmentStatus.FAULT,EquipmentStatus.STOPPED),
-        EquipmentStatus.FAULT,Set.of(EquipmentStatus.REPAIRING,EquipmentStatus.SCRAPPED),
+        EquipmentStatus.FAULT,Set.of(EquipmentStatus.REPAIRING,EquipmentStatus.RUNNING,EquipmentStatus.STOPPED,EquipmentStatus.SCRAPPED),
         EquipmentStatus.REPAIRING,Set.of(EquipmentStatus.RUNNING,EquipmentStatus.SCRAPPED),
         EquipmentStatus.STOPPED,Set.of(EquipmentStatus.RUNNING,EquipmentStatus.SCRAPPED),
         EquipmentStatus.SCRAPPED,Set.of());
@@ -36,6 +36,14 @@ public class EquipmentStateService {
         transition(equipmentId,target,reason,"MANUAL",null,SecurityUtils.currentUser().userId());
     }
     @Transactional public void scrap(Long equipmentId,String reason){scopes.assertCanManage(equipmentId);transition(equipmentId,EquipmentStatus.SCRAPPED,reason,"SCRAP",null,SecurityUtils.currentUser().userId());}
+
+    @Transactional public void cancelWorkOrder(Long equipmentId,EquipmentStatus target,String reason,Long workOrderId,Long operatorId){
+        if(target!=EquipmentStatus.RUNNING&&target!=EquipmentStatus.STOPPED)throw new BusinessException(ErrorCode.PARAMETER_ERROR,"取消工单后的设备状态只能为运行或停用");
+        Equipment equipment=mapper.findEquipment(equipmentId);
+        if(equipment==null)throw new BusinessException(ErrorCode.NOT_FOUND,"设备不存在");
+        if(equipment.getStatus()!=EquipmentStatus.FAULT)throw new BusinessException(ErrorCode.ILLEGAL_STATE_TRANSITION,"仅故障设备可随最后一张维修工单取消进行状态处置");
+        transition(equipmentId,target,reason,"WORK_ORDER",workOrderId,operatorId);
+    }
 
     @Transactional public void transition(Long equipmentId,EquipmentStatus target,String reason,String sourceType,Long sourceId,Long operatorId){
         Equipment e=mapper.findEquipment(equipmentId);if(e==null)throw new BusinessException(ErrorCode.NOT_FOUND,"设备不存在");

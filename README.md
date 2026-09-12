@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-已完成基础工程、数据库 SQL、第 3 阶段认证与 RBAC，以及第 4 阶段组织结构、设备类型、设备台账和设备生命周期状态管理。设备模块具备后端分页与组合查询、详情聚合、二维码、Excel 模板/导入/导出、状态履历、事务状态机和基于角色/组织关系的数据权限；前端已接入组织管理、设备列表和设备详情页面。
+已完成基础工程、数据库 SQL、第 3 阶段认证与 RBAC、第 4 阶段组织与设备管理，以及第 5 阶段故障报修和维修工单核心闭环。系统现可完成 PC/二维码入口报修、自动生成唯一主工单、人工派单、工程师接单与维修记录、挂起/恢复、提交验收、验收退回/通过、取消处置，并同步维护工单流转日志与设备状态履历。
 
 ## 技术栈
 
@@ -110,15 +110,15 @@ npm run dev
 sql/00_create_database.sql
 ```
 
-按 [sql/README.md](sql/README.md) 中的顺序执行全部正式脚本。认证联调时可额外执行 `sql/11_dev_auth_seed.sql`、`sql/12_stage4_permissions.sql` 和 `sql/13_stage4_demo_data.sql`；五种角色测试账号统一使用仅供开发演示的密码 `DevOnly@123`。
+按 [sql/README.md](sql/README.md) 中的顺序执行全部正式脚本。认证联调时可额外执行 `sql/11_dev_auth_seed.sql`、`sql/12_stage4_permissions.sql`、`sql/13_stage4_demo_data.sql` 和 `sql/14_stage5_permissions.sql`；五种角色测试账号统一使用仅供开发演示的密码 `DevOnly@123`。
 
-## 第 4 阶段验证
+## 第 5 阶段验证
 
 ```powershell
 cd backend
 .\mvnw.cmd test
-# 本机已有 MySQL 数据库时，额外运行真实 SQL/事务集成测试
-.\mvnw.cmd --% -Dstage4.db-tests=true test
+# 同时运行第4、5阶段真实 MySQL 集成测试
+.\mvnw.cmd --% -Dstage4.db-tests=true -Dstage5.db-tests=true test
 
 cd ..\frontend
 npm run build

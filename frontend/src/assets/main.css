@@ -58,6 +58,10 @@ body {
 .pagination-row { display: flex; justify-content: flex-end; padding-top: 18px; }
 .equipment-form { display: grid; grid-template-columns: 1fr 1fr; column-gap: 18px; }.equipment-form .full { grid-column: 1/-1; }
 .detail-grid { display: grid; grid-template-columns: minmax(0,1fr) 330px; gap: 18px; }.qr-card { text-align: center; }.qr-card img { width: 240px; max-width: 100%; }.qr-card p { color: #7a8493; font-size: 13px; }
+.repair-create-card { border-left: 4px solid #d9485f; }.repair-create-card .el-card__body { max-width: 900px; }
+.form-tip { margin-left: 14px; color: #7a8493; font-size: 13px; }.table-subtitle { display: block; margin-top: 3px; color: #8491a3; }
+.compact-filter { margin-bottom: 18px; }.action-card { border-left: 4px solid #2f7ee6; }.workflow-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.dialog-form { margin-top: 18px; }.detail-grid .el-timeline { padding-left: 8px; }.detail-grid .el-timeline p { margin: 5px 0; color: #586779; }
 
 button,
 input,

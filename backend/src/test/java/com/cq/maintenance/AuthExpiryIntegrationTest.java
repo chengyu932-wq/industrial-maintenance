@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.cq.maintenance.security.AuthMapper;
 import com.cq.maintenance.equipment.mapper.EquipmentMapper;
 import com.cq.maintenance.organization.mapper.OrganizationMapper;
+import com.cq.maintenance.workorder.mapper.WorkOrderMapper;
 import com.cq.maintenance.system.entity.SysUser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,6 +41,7 @@ class AuthExpiryIntegrationTest {
     @MockitoBean private AuthMapper authMapper;
     @MockitoBean private EquipmentMapper equipmentMapper;
     @MockitoBean private OrganizationMapper organizationMapper;
+    @MockitoBean private WorkOrderMapper workOrderMapper;
 
     @BeforeEach
     void setUp() {

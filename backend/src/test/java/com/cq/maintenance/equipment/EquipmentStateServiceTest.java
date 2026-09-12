@@ -25,4 +25,7 @@ class EquipmentStateServiceTest {
     @Test void stoppedEquipmentCanBeScrapped(){state(EquipmentStatus.STOPPED);service.scrap(1L,"达到使用年限");verify(mapper).insertStatusLog(1L,EquipmentStatus.STOPPED,EquipmentStatus.SCRAPPED,"SCRAP",null,"达到使用年限",7L);}
     @Test void scrappedEquipmentCannotReturnToRunning(){state(EquipmentStatus.SCRAPPED);assertThrows(BusinessException.class,()->service.manual(1L,EquipmentStatus.RUNNING,"恢复"));}
     @Test void optimisticConflictDoesNotWriteHistory(){state(EquipmentStatus.RUNNING);when(mapper.updateStatus(anyLong(),any(),any())).thenReturn(0);assertThrows(BusinessException.class,()->service.manual(1L,EquipmentStatus.STOPPED,"停机"));verify(mapper,never()).insertStatusLog(anyLong(),any(),any(),anyString(),any(),anyString(),anyLong());}
+    @Test void cancelledWorkOrderCanRestoreFaultEquipment(){state(EquipmentStatus.FAULT);service.cancelWorkOrder(1L,EquipmentStatus.RUNNING,"误报",8L,7L);verify(mapper).insertStatusLog(1L,EquipmentStatus.FAULT,EquipmentStatus.RUNNING,"WORK_ORDER",8L,"误报",7L);}
+    @Test void cancelledWorkOrderCanStopFaultEquipment(){state(EquipmentStatus.FAULT);service.cancelWorkOrder(1L,EquipmentStatus.STOPPED,"故障仍在",8L,7L);verify(mapper).updateStatus(1L,EquipmentStatus.FAULT,EquipmentStatus.STOPPED);}
+    @Test void cancellationCannotChooseScrapped(){state(EquipmentStatus.FAULT);assertThrows(BusinessException.class,()->service.cancelWorkOrder(1L,EquipmentStatus.SCRAPPED,"报废",8L,7L));}
 }

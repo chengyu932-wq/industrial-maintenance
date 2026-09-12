@@ -20,6 +20,7 @@
 | 12 | `11_dev_auth_seed.sql` | 可选：五种角色开发账号、禁用账号和认证阶段菜单权限 |
 | 13 | `12_stage4_permissions.sql` | 第4阶段组织与设备菜单、按钮权限（现有库升级也需执行） |
 | 14 | `13_stage4_demo_data.sql` | 可选：第4阶段组织、设备类型与设备演示数据 |
+| 15 | `14_stage5_permissions.sql` | 第5阶段故障报修、工单菜单与按钮权限 |
 
 在 MySQL 客户端中依次执行：
 
@@ -36,6 +37,7 @@ SOURCE D:/BS/industrial-maintenance/sql/08_schema_support.sql;
 SOURCE D:/BS/industrial-maintenance/sql/09_init_data.sql;
 SOURCE D:/BS/industrial-maintenance/sql/10_verify_database.sql;
 SOURCE D:/BS/industrial-maintenance/sql/12_stage4_permissions.sql;
+SOURCE D:/BS/industrial-maintenance/sql/14_stage5_permissions.sql;
 -- 仅本地开发/答辩演示时执行：
 SOURCE D:/BS/industrial-maintenance/sql/11_dev_auth_seed.sql;
 SOURCE D:/BS/industrial-maintenance/sql/13_stage4_demo_data.sql;
