@@ -24,6 +24,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import com.cq.maintenance.inventory.mapper.InventoryMapper;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(properties = {
@@ -42,6 +43,7 @@ class AuthExpiryIntegrationTest {
     @MockitoBean private EquipmentMapper equipmentMapper;
     @MockitoBean private OrganizationMapper organizationMapper;
     @MockitoBean private WorkOrderMapper workOrderMapper;
+    @MockitoBean private InventoryMapper inventoryMapper;
 
     @BeforeEach
     void setUp() {

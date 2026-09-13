@@ -10,6 +10,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import com.cq.maintenance.inventory.mapper.InventoryMapper;
 import com.cq.maintenance.security.AuthMapper;
 import com.cq.maintenance.equipment.mapper.EquipmentMapper;
 import com.cq.maintenance.organization.mapper.OrganizationMapper;
@@ -32,6 +33,7 @@ class HealthControllerIntegrationTest {
     @MockitoBean private EquipmentMapper equipmentMapper;
     @MockitoBean private OrganizationMapper organizationMapper;
     @MockitoBean private WorkOrderMapper workOrderMapper;
+    @MockitoBean private InventoryMapper inventoryMapper;
 
     @Test
     void shouldReturnPublicHealthResponse() throws Exception {

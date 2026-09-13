@@ -4,6 +4,9 @@ import com.cq.maintenance.common.response.*;
 import com.cq.maintenance.workorder.dto.*;
 import com.cq.maintenance.workorder.service.WorkOrderService;
 import com.cq.maintenance.workorder.vo.*;
+import com.cq.maintenance.inventory.dto.*;
+import com.cq.maintenance.inventory.service.InventoryService;
+import com.cq.maintenance.inventory.vo.WorkOrderSpareVO;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Validated @RestController @RequestMapping("/api/work-orders")
 public class WorkOrderController {
-    private final WorkOrderService service;public WorkOrderController(WorkOrderService service){this.service=service;}
+    private final WorkOrderService service;private final InventoryService inventory;public WorkOrderController(WorkOrderService service,InventoryService inventory){this.service=service;this.inventory=inventory;}
     @GetMapping @PreAuthorize("hasAuthority('workorder:list')") public ApiResponse<PageResult<WorkOrderListVO>> page(@Valid WorkOrderQuery query){return ApiResponse.success(service.page(query));}
     @GetMapping("/{id}") @PreAuthorize("hasAuthority('workorder:view')") public ApiResponse<WorkOrderDetailVO> detail(@PathVariable Long id){return ApiResponse.success(service.detail(id));}
     @GetMapping("/{id}/flows") @PreAuthorize("hasAuthority('workorder:view')") public ApiResponse<List<WorkOrderFlowVO>> flows(@PathVariable Long id){return ApiResponse.success(service.flows(id));}
@@ -27,4 +30,7 @@ public class WorkOrderController {
     @PostMapping("/{id}/acceptance/pass") @PreAuthorize("hasAuthority('workorder:accept')") public ApiResponse<Void> pass(@PathVariable Long id,@Valid @RequestBody AcceptanceRequest input){service.pass(id,input);return ApiResponse.success(null);}
     @PostMapping("/{id}/acceptance/reject") @PreAuthorize("hasAuthority('workorder:accept')") public ApiResponse<Void> reject(@PathVariable Long id,@Valid @RequestBody ReasonRequest input){service.reject(id,input);return ApiResponse.success(null);}
     @PostMapping("/{id}/cancel") @PreAuthorize("hasAuthority('workorder:cancel')") public ApiResponse<Void> cancel(@PathVariable Long id,@Valid @RequestBody CancelWorkOrderRequest input){service.cancel(id,input);return ApiResponse.success(null);}
+    @GetMapping("/{id}/spares") @PreAuthorize("hasAuthority('workorder:view')") public ApiResponse<List<WorkOrderSpareVO>> spares(@PathVariable Long id){return ApiResponse.success(inventory.workOrderSpares(id));}
+    @PostMapping("/{id}/spares") @PreAuthorize("hasAuthority('inventory:issue')") public ApiResponse<Long> issueSpare(@PathVariable Long id,@Valid @RequestBody WorkOrderSpareRequest input){return ApiResponse.success(inventory.issueForWorkOrder(id,input));}
+    @PostMapping("/{id}/spares/{issueId}/return") @PreAuthorize("hasAuthority('inventory:return')") public ApiResponse<Void> returnSpare(@PathVariable Long id,@PathVariable Long issueId,@Valid @RequestBody ReturnSpareRequest input){inventory.returnForWorkOrder(id,issueId,input);return ApiResponse.success(null);}
 }

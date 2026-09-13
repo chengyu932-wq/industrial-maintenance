@@ -12,3 +12,5 @@ export const submitAcceptance = (id) => http.post(`/work-orders/${id}/submit-acc
 export const pass = (id, data) => http.post(`/work-orders/${id}/acceptance/pass`, data)
 export const reject = (id, data) => http.post(`/work-orders/${id}/acceptance/reject`, data)
 export const cancel = (id, data) => http.post(`/work-orders/${id}/cancel`, data)
+export const issueSpare = (id, data) => http.post(`/work-orders/${id}/spares`, data)
+export const returnSpare = (id, issueId, data) => http.post(`/work-orders/${id}/spares/${issueId}/return`, data)

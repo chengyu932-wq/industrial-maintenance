@@ -4,6 +4,7 @@ import com.cq.maintenance.common.exception.*;
 import com.cq.maintenance.common.response.PageResult;
 import com.cq.maintenance.equipment.entity.EquipmentStatus;
 import com.cq.maintenance.equipment.service.EquipmentStateService;
+import com.cq.maintenance.inventory.service.InventoryService;
 import com.cq.maintenance.security.*;
 import com.cq.maintenance.workorder.dto.*;
 import com.cq.maintenance.workorder.entity.*;
@@ -15,10 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class WorkOrderService {
-    private final WorkOrderMapper mapper;private final WorkOrderScopeService scopes;private final WorkOrderStateService states;private final EquipmentStateService equipmentStates;
-    public WorkOrderService(WorkOrderMapper mapper,WorkOrderScopeService scopes,WorkOrderStateService states,EquipmentStateService equipmentStates){this.mapper=mapper;this.scopes=scopes;this.states=states;this.equipmentStates=equipmentStates;}
+    private final WorkOrderMapper mapper;private final WorkOrderScopeService scopes;private final WorkOrderStateService states;private final EquipmentStateService equipmentStates;private final InventoryService inventory;
+    public WorkOrderService(WorkOrderMapper mapper,WorkOrderScopeService scopes,WorkOrderStateService states,EquipmentStateService equipmentStates,InventoryService inventory){this.mapper=mapper;this.scopes=scopes;this.states=states;this.equipmentStates=equipmentStates;this.inventory=inventory;}
     public PageResult<WorkOrderListVO> page(WorkOrderQuery query){var scope=scopes.current();return PageResult.of(mapper.findWorkOrderPage(query,scope),mapper.countWorkOrderPage(query,scope),query.getPage(),query.getSize());}
-    public WorkOrderDetailVO detail(Long id){scopes.assertVisible(id);WorkOrderListVO summary=requiredSummary(id);return new WorkOrderDetailVO(summary,summary.repairRequestId()==null?null:mapper.findRepairRequest(summary.repairRequestId(),scopes.current()),mapper.findRepairRecordVO(id),mapper.findFlows(id));}
+    public WorkOrderDetailVO detail(Long id){scopes.assertVisible(id);WorkOrderListVO summary=requiredSummary(id);return new WorkOrderDetailVO(summary,summary.repairRequestId()==null?null:mapper.findRepairRequest(summary.repairRequestId(),scopes.current()),mapper.findRepairRecordVO(id),inventory.workOrderSpares(id),mapper.findFlows(id));}
     public List<WorkOrderFlowVO> flows(Long id){scopes.assertVisible(id);return mapper.findFlows(id);}
     public List<EngineerOptionVO> engineers(Long id){scopes.assertCanAssign(id);LoginUser user=SecurityUtils.currentUser();List<EngineerOptionVO> all=mapper.findEngineers();if(user.roleCodes().contains("ADMIN"))return all;return all.stream().filter(e->(user.workshopId()!=null&&user.workshopId().equals(e.workshopId()))||(e.teamId()!=null&&user.teamIds().contains(e.teamId()))).toList();}
 

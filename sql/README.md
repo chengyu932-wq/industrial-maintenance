@@ -21,6 +21,8 @@
 | 13 | `12_stage4_permissions.sql` | 第4阶段组织与设备菜单、按钮权限（现有库升级也需执行） |
 | 14 | `13_stage4_demo_data.sql` | 可选：第4阶段组织、设备类型与设备演示数据 |
 | 15 | `14_stage5_permissions.sql` | 第5阶段故障报修、工单菜单与按钮权限 |
+| 16 | `15_stage7_permissions.sql` | 第7阶段仓库、备件、库存和工单备件权限 |
+| 17 | `16_stage7_demo_data.sql` | 可选：第7阶段仓库、备件、期初库存和授权演示数据 |
 
 在 MySQL 客户端中依次执行：
 
@@ -38,9 +40,11 @@ SOURCE D:/BS/industrial-maintenance/sql/09_init_data.sql;
 SOURCE D:/BS/industrial-maintenance/sql/10_verify_database.sql;
 SOURCE D:/BS/industrial-maintenance/sql/12_stage4_permissions.sql;
 SOURCE D:/BS/industrial-maintenance/sql/14_stage5_permissions.sql;
+SOURCE D:/BS/industrial-maintenance/sql/15_stage7_permissions.sql;
 -- 仅本地开发/答辩演示时执行：
 SOURCE D:/BS/industrial-maintenance/sql/11_dev_auth_seed.sql;
 SOURCE D:/BS/industrial-maintenance/sql/13_stage4_demo_data.sql;
+SOURCE D:/BS/industrial-maintenance/sql/16_stage7_demo_data.sql;
 ```
 
 ## 初始化与重复执行

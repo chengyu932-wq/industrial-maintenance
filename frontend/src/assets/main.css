@@ -194,3 +194,15 @@ button, input, textarea, select { font: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+.inventory-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 18px; }
+.inventory-form .el-form-item:last-child { grid-column: 1 / -1; }
+.table-subtitle { display: block; margin-top: 3px; color: var(--ink-500); }
+.numeric, .qty-change { font-variant-numeric: tabular-nums; }
+.qty-change.positive { color: #16845b; }
+.qty-change.negative { color: #c3463a; }
+
+@media (max-width: 760px) {
+  .inventory-form { grid-template-columns: 1fr; }
+  .inventory-form .el-form-item:last-child { grid-column: auto; }
+}
