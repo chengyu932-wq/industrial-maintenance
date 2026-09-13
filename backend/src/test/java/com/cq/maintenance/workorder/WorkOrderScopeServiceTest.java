@@ -8,7 +8,7 @@ class WorkOrderScopeServiceTest {
     @BeforeEach void setUp(){mapper=mock(WorkOrderMapper.class);service=new WorkOrderScopeService(mapper);}
     @AfterEach void clear(){SecurityContextHolder.clearContext();}
     void login(Long id,String role,Long workshop,List<Long> teams){LoginUser u=new LoginUser(id,"u","用户","ENABLED",List.of(role),List.of(),teams,workshop,List.of());SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.authenticated(u,null,List.of()));}
-    WorkOrderListVO summary(Long reporter){return new WorkOrderListVO(1L,"WO",WorkOrderType.REPAIR,2L,"RR",3L,"E","设备",4L,"车间",null,WorkOrderStatus.PENDING_ACCEPT,reporter,"报修人",7L,"工程师",8L,"班组",null,null,null,null,null,null,0);}
+    WorkOrderListVO summary(Long reporter){return new WorkOrderListVO(1L,"WO",WorkOrderType.REPAIR,2L,"RR",3L,"E","设备",4L,"车间",null,WorkOrderStatus.PENDING_ACCEPT,reporter,"报修人",7L,"工程师",8L,"班组",null,null,null,null,null,null,0,null);}
     @Test void adminGetsAllScope(){login(1L,"ADMIN",null,List.of());assertTrue(service.current().allData());}
     @Test void supervisorGetsWorkshopScope(){login(2L,"MAINTENANCE_SUPERVISOR",4L,List.of(8L));assertEquals("SUPERVISOR",service.current().mode());}
     @Test void engineerGetsSelfOrTeamScope(){login(3L,"ENGINEER",4L,List.of(8L));assertEquals("ENGINEER",service.current().mode());}

@@ -43,7 +43,7 @@ public class EquipmentService {
     @Transactional public void update(Long id,EquipmentUpdateRequest r){Equipment e=required(id);scopes.assertCanManage(id);if(e.getStatus()==EquipmentStatus.SCRAPPED)throw new BusinessException(ErrorCode.BUSINESS_CONFLICT,"报废设备不能修改基础资料");
         validate(r.equipmentNo(),id,r.typeId(),r.stationId(),r.responsibleUserId(),r.responsibleTeamId());scopes.assertCanCreate(r.stationId(),r.responsibleTeamId());copy(e,r.equipmentNo(),r.equipmentName(),r.typeId(),r.model(),r.manufacturer(),r.specifications(),r.manufactureDate(),r.commissioningDate(),r.responsibleUserId(),r.responsibleTeamId(),r.stationId(),r.warrantyExpireDate());mapper.updateEquipment(e);}
     public Equipment required(Long id){Equipment e=mapper.findEquipment(id);if(e==null)throw new BusinessException(ErrorCode.NOT_FOUND,"设备不存在");return e;}
-    private void assertVisible(Long id){EquipmentDataScope s=scopes.current();
+    public void assertVisible(Long id){EquipmentDataScope s=scopes.current();
         if(s.allData()){required(id);return;} EquipmentDetailRow d=mapper.findDetailBase(id);if(d==null)throw new BusinessException(ErrorCode.NOT_FOUND,"设备不存在");
         boolean visible=s.mode().equals("REFERENCE")?d.status()!=EquipmentStatus.SCRAPPED:s.mode().equals("SUPERVISOR")&&((s.workshopId()!=null&&s.workshopId().equals(d.workshopId()))||(d.responsibleTeamId()!=null&&s.teamIds().contains(d.responsibleTeamId())))||s.mode().equals("ENGINEER")&&((d.responsibleUserId()!=null&&d.responsibleUserId().equals(s.userId()))||(d.responsibleTeamId()!=null&&s.teamIds().contains(d.responsibleTeamId())));
         if(!visible)throw new BusinessException(ErrorCode.DATA_FORBIDDEN,"无权访问该设备");}

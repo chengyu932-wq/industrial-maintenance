@@ -9,4 +9,4 @@ public record WorkOrderListVO(Long id,String workOrderNo,WorkOrderType workOrder
     RepairPriority priority,WorkOrderStatus status,Long reporterId,String reporterName,Long assignedEngineerId,
     String assignedEngineerName,Long assignedTeamId,String assignedTeamName,LocalDateTime createdAt,
     LocalDateTime assignedAt,LocalDateTime acceptedAt,LocalDateTime startedAt,LocalDateTime submittedAt,
-    LocalDateTime completedAt,Integer acceptanceReturnCount) {}
+    LocalDateTime completedAt,Integer acceptanceReturnCount,Long pmPlanId) {}

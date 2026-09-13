@@ -197,6 +197,15 @@ button, input, textarea, select { font: inherit; }
 
 .inventory-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 18px; }
 .inventory-form .el-form-item:last-child { grid-column: 1 / -1; }
+.maintenance-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; margin-top: 18px; }
+.item-editor { display: grid; gap: 10px; margin: 18px 0 12px; }
+.item-row { display: grid; grid-template-columns: 32px minmax(130px,.7fr) minmax(220px,1.3fr) 64px 44px; gap: 10px; align-items: center; }
+.item-index { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--brand-100); color: var(--brand-700); font-size: 12px; font-weight: 750; }
+.maintenance-checklist { display: grid; gap: 12px; }
+.maintenance-check { display: grid; grid-template-columns: minmax(180px,.8fr) 130px minmax(150px,.7fr) minmax(190px,1fr); gap: 12px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.maintenance-check:last-child { border-bottom: 0; }
+.maintenance-check-title strong,.maintenance-check-title small { display: block; }
+.maintenance-check-title small { margin-top: 4px; color: var(--ink-500); }
 .table-subtitle { display: block; margin-top: 3px; color: var(--ink-500); }
 .numeric, .qty-change { font-variant-numeric: tabular-nums; }
 .qty-change.positive { color: #16845b; }
@@ -205,4 +214,6 @@ button, input, textarea, select { font: inherit; }
 @media (max-width: 760px) {
   .inventory-form { grid-template-columns: 1fr; }
   .inventory-form .el-form-item:last-child { grid-column: auto; }
+  .maintenance-form,.item-row,.maintenance-check { grid-template-columns: 1fr; }
+  .item-index { display: none; }
 }

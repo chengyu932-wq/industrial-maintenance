@@ -1,0 +1,12 @@
+import http from './http'
+export const page = (params) => http.get('/maintenance-plans', { params })
+export const detail = (id) => http.get(`/maintenance-plans/${id}`)
+export const create = (data) => http.post('/maintenance-plans', data)
+export const update = (id, data) => http.put(`/maintenance-plans/${id}`, data)
+export const enable = (id) => http.post(`/maintenance-plans/${id}/enable`)
+export const disable = (id) => http.post(`/maintenance-plans/${id}/disable`)
+export const saveItems = (id, data) => http.put(`/maintenance-plans/${id}/items`, data)
+export const history = (id) => http.get(`/maintenance-plans/${id}/history`)
+export const scan = () => http.post('/maintenance-plans/scan')
+export const workOrder = (id) => http.get(`/work-orders/${id}/maintenance-items`)
+export const saveExecution = (id, data) => http.put(`/work-orders/${id}/maintenance-items`, data)

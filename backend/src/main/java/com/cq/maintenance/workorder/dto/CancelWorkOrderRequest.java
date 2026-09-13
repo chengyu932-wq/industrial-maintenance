@@ -2,10 +2,9 @@ package com.cq.maintenance.workorder.dto;
 
 import com.cq.maintenance.equipment.entity.EquipmentStatus;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record CancelWorkOrderRequest(
     @NotBlank(message="取消原因不能为空") @Size(max=500,message="取消原因不能超过500字") String reason,
-    @NotNull(message="请选择取消后的设备状态") EquipmentStatus equipmentTargetStatus
+    EquipmentStatus equipmentTargetStatus
 ) {}

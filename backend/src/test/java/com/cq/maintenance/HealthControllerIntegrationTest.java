@@ -15,6 +15,7 @@ import com.cq.maintenance.security.AuthMapper;
 import com.cq.maintenance.equipment.mapper.EquipmentMapper;
 import com.cq.maintenance.organization.mapper.OrganizationMapper;
 import com.cq.maintenance.workorder.mapper.WorkOrderMapper;
+import com.cq.maintenance.maintenance.mapper.MaintenanceMapper;
 
 @SpringBootTest(properties = {
     "app.auth.jwt-secret=test-only-secret-that-is-at-least-32-bytes-long",
@@ -34,6 +35,7 @@ class HealthControllerIntegrationTest {
     @MockitoBean private OrganizationMapper organizationMapper;
     @MockitoBean private WorkOrderMapper workOrderMapper;
     @MockitoBean private InventoryMapper inventoryMapper;
+    @MockitoBean private MaintenanceMapper maintenanceMapper;
 
     @Test
     void shouldReturnPublicHealthResponse() throws Exception {

@@ -11,6 +11,7 @@ import com.cq.maintenance.security.AuthMapper;
 import com.cq.maintenance.equipment.mapper.EquipmentMapper;
 import com.cq.maintenance.organization.mapper.OrganizationMapper;
 import com.cq.maintenance.workorder.mapper.WorkOrderMapper;
+import com.cq.maintenance.maintenance.mapper.MaintenanceMapper;
 import com.cq.maintenance.system.entity.SysUser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -44,6 +45,7 @@ class AuthExpiryIntegrationTest {
     @MockitoBean private OrganizationMapper organizationMapper;
     @MockitoBean private WorkOrderMapper workOrderMapper;
     @MockitoBean private InventoryMapper inventoryMapper;
+    @MockitoBean private MaintenanceMapper maintenanceMapper;
 
     @BeforeEach
     void setUp() {

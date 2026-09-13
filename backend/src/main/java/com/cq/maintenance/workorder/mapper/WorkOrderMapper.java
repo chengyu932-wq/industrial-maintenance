@@ -20,7 +20,7 @@ public interface WorkOrderMapper extends BaseMapper<WorkOrder> {
     String LIST_COLUMNS="wo.id,wo.work_order_no,wo.work_order_type,wo.repair_request_id,rr.request_no,wo.equipment_id,e.equipment_no,e.equipment_name,"+
         "w.id workshop_id,w.workshop_name,wo.priority,wo.status,rr.reporter_id,reporter.real_name reporter_name,wo.assigned_engineer_id,"+
         "engineer.real_name assigned_engineer_name,wo.assigned_team_id,team.team_name assigned_team_name,wo.created_at,wo.assigned_at,wo.accepted_at,"+
-        "wo.started_at,wo.submitted_at,wo.completed_at,wo.acceptance_return_count";
+        "wo.started_at,wo.submitted_at,wo.completed_at,wo.acceptance_return_count,wo.pm_plan_id";
     String SCOPE_SQL="<if test='scope.allData == false'> AND (<choose>"+
         "<when test='scope.mode == &quot;SUPERVISOR&quot;'><if test='scope.workshopId != null'>w.id=#{scope.workshopId}</if><if test='scope.workshopId == null'>1=0</if>"+
         "<if test='scope.teamIds != null and scope.teamIds.size() > 0'> OR wo.assigned_team_id IN <foreach collection='scope.teamIds' item='id' open='(' separator=',' close=')'>#{id}</foreach> OR e.responsible_team_id IN <foreach collection='scope.teamIds' item='id' open='(' separator=',' close=')'>#{id}</foreach></if></when>"+

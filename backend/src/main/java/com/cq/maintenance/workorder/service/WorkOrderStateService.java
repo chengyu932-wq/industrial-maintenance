@@ -18,7 +18,8 @@ public class WorkOrderStateService {
         WorkOrderStatus.COMPLETED,Set.of(),WorkOrderStatus.CANCELLED,Set.of());
     private final WorkOrderMapper mapper;
     public WorkOrderStateService(WorkOrderMapper mapper){this.mapper=mapper;}
-    public void created(WorkOrder order,Long operatorId){mapper.insertFlow(order.getId(),null,WorkOrderStatus.PENDING_ASSIGN,"CREATE",operatorId,"故障报修自动生成维修工单");}
+    public void created(WorkOrder order,Long operatorId){created(order,operatorId,"故障报修自动生成维修工单");}
+    public void created(WorkOrder order,Long operatorId,String remark){mapper.insertFlow(order.getId(),null,WorkOrderStatus.PENDING_ASSIGN,"CREATE",operatorId,remark);}
     public void assign(WorkOrder order,Long engineerId,Long teamId,String reason,Long operatorId){
         require(order,WorkOrderStatus.PENDING_ASSIGN,WorkOrderStatus.ASSIGNED);
         if(mapper.assign(order.getId(),engineerId,teamId)!=1)duplicate();
