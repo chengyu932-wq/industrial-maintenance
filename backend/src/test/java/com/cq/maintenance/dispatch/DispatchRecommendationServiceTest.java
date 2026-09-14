@@ -1,0 +1,34 @@
+package com.cq.maintenance.dispatch;
+
+import static org.junit.jupiter.api.Assertions.*;import static org.mockito.ArgumentMatchers.*;import static org.mockito.Mockito.*;
+import com.cq.maintenance.common.exception.BusinessException;import com.cq.maintenance.dispatch.mapper.DispatchMapper;import com.cq.maintenance.dispatch.service.DispatchRecommendationService;import com.cq.maintenance.dispatch.vo.*;import com.cq.maintenance.security.LoginUser;import com.cq.maintenance.workorder.entity.*;import com.cq.maintenance.workorder.service.WorkOrderScopeService;import java.math.BigDecimal;import java.util.*;import org.junit.jupiter.api.*;import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;import org.springframework.security.core.context.SecurityContextHolder;
+
+class DispatchRecommendationServiceTest {
+    DispatchMapper mapper;WorkOrderScopeService scopes;DispatchProperties properties;DispatchRecommendationService service;
+    @BeforeEach void setup(){mapper=mock(DispatchMapper.class);scopes=mock(WorkOrderScopeService.class);properties=new DispatchProperties();service=new DispatchRecommendationService(mapper,scopes,properties);login("ADMIN",null,List.of());when(mapper.findContext(1L)).thenReturn(context(WorkOrderType.REPAIR,WorkOrderStatus.PENDING_ASSIGN));when(mapper.findRequiredSkills(anyLong())).thenReturn(List.of());when(mapper.findEngineerSkills(anyLong())).thenReturn(List.of());when(mapper.findEligibleEngineers()).thenReturn(List.of());}
+    @AfterEach void clear(){SecurityContextHolder.clearContext();}
+    DispatchContext context(WorkOrderType type,WorkOrderStatus status){return new DispatchContext(1L,"WO1",type,status,9L,3L,4L);}
+    DispatchEngineerRow engineer(long id,long load,Long team,Long workshop){return new DispatchEngineerRow(id,"工程师"+id,team,"班组"+team,workshop,load);}
+    SkillMatchRow skill(long id){return new SkillMatchRow(id,"技能"+id);}
+    void login(String role,Long workshop,List<Long> teams){LoginUser u=new LoginUser(99L,"user","用户","ENABLED",List.of(role),List.of("workorder:assign"),teams,workshop,List.of());SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.authenticated(u,null,List.of()));}
+    @Test void emptyCandidateSetReturnsEmpty(){assertTrue(service.recommend(1L).isEmpty());}
+    @Test void permissionAndDataScopeAreChecked(){service.recommend(1L);verify(scopes).assertCanAssign(1L);}
+    @Test void maintenanceOrderIsRejected(){when(mapper.findContext(1L)).thenReturn(context(WorkOrderType.MAINTENANCE,WorkOrderStatus.PENDING_ASSIGN));assertThrows(BusinessException.class,()->service.recommend(1L));}
+    @Test void assignedOrderIsRejected(){when(mapper.findContext(1L)).thenReturn(context(WorkOrderType.REPAIR,WorkOrderStatus.ASSIGNED));assertThrows(BusinessException.class,()->service.recommend(1L));}
+    @Test void missingOrderIsRejected(){when(mapper.findContext(1L)).thenReturn(null);assertThrows(BusinessException.class,()->service.recommend(1L));}
+    @Test void returnsAtMostTopThree(){when(mapper.findEligibleEngineers()).thenReturn(List.of(engineer(1,0,3L,4L),engineer(2,1,3L,4L),engineer(3,2,3L,4L),engineer(4,3,3L,4L)));assertEquals(3,service.recommend(1L).size());}
+    @Test void returnsActualCountBelowThree(){when(mapper.findEligibleEngineers()).thenReturn(List.of(engineer(1,0,3L,4L),engineer(2,1,3L,4L)));assertEquals(2,service.recommend(1L).size());}
+    @Test void higherSkillMatchRanksFirst(){when(mapper.findRequiredSkills(9L)).thenReturn(List.of(skill(1),skill(2)));when(mapper.findEligibleEngineers()).thenReturn(List.of(engineer(1,0,3L,4L),engineer(2,0,3L,4L)));when(mapper.findEngineerSkills(1L)).thenReturn(List.of(skill(1)));when(mapper.findEngineerSkills(2L)).thenReturn(List.of(skill(1),skill(2)));assertEquals(2L,service.recommend(1L).get(0).engineerId());}
+    @Test void lowerLoadRanksFirst(){when(mapper.findEligibleEngineers()).thenReturn(List.of(engineer(1,4,3L,4L),engineer(2,0,3L,4L)));assertEquals(2L,service.recommend(1L).get(0).engineerId());}
+    @Test void sameTeamAddsScore(){when(mapper.findEligibleEngineers()).thenReturn(List.of(engineer(1,0,8L,4L),engineer(2,0,3L,4L)));assertEquals(new BigDecimal("1.0000"),service.recommend(1L).get(0).teamScore());}
+    @Test void sameAreaAddsScore(){when(mapper.findEligibleEngineers()).thenReturn(List.of(engineer(1,0,3L,7L),engineer(2,0,3L,4L)));assertEquals(new BigDecimal("1.0000"),service.recommend(1L).get(0).areaScore());}
+    @Test void configuredFormulaIsApplied(){when(mapper.findRequiredSkills(9L)).thenReturn(List.of(skill(1),skill(2)));when(mapper.findEligibleEngineers()).thenReturn(List.of(engineer(1,1,3L,4L)));when(mapper.findEngineerSkills(1L)).thenReturn(List.of(skill(1)));assertEquals(new BigDecimal("0.6500"),service.recommend(1L).get(0).totalScore());}
+    @Test void missingSkillRequirementRenormalizesOtherDimensions(){when(mapper.findEligibleEngineers()).thenReturn(List.of(engineer(1,0,3L,4L)));assertEquals(new BigDecimal("1.0000"),service.recommend(1L).get(0).totalScore());}
+    @Test void tieBreakUsesEngineerId(){when(mapper.findEligibleEngineers()).thenReturn(List.of(engineer(9,0,3L,4L),engineer(2,0,3L,4L)));assertEquals(2L,service.recommend(1L).get(0).engineerId());}
+    @Test void repeatedInputIsDeterministic(){when(mapper.findEligibleEngineers()).thenReturn(List.of(engineer(3,1,3L,4L),engineer(2,1,3L,4L)));assertEquals(service.recommend(1L),service.recommend(1L));}
+    @Test void supervisorCandidatesAreLimitedToManagedScope(){login("MAINTENANCE_SUPERVISOR",4L,List.of(3L));when(mapper.findEligibleEngineers()).thenReturn(List.of(engineer(1,0,8L,9L),engineer(2,0,3L,9L),engineer(3,0,8L,4L)));assertEquals(List.of(2L,3L),service.recommend(1L).stream().map(DispatchRecommendationVO::engineerId).sorted().toList());}
+    @Test void reasonsExposeRealFactors(){when(mapper.findRequiredSkills(9L)).thenReturn(List.of(skill(1)));when(mapper.findEngineerSkills(1L)).thenReturn(List.of(skill(1)));when(mapper.findEligibleEngineers()).thenReturn(List.of(engineer(1,2,3L,4L)));var value=service.recommend(1L).get(0);assertTrue(value.recommendationReasons().contains("匹配1/1项技能"));assertTrue(value.recommendationReasons().contains("当前2张在处工单"));}
+    @Test void recommendationDoesNotInvokeAssignmentFlow(){when(mapper.findEligibleEngineers()).thenReturn(List.of(engineer(1,0,3L,4L)));assertEquals(1,service.recommend(1L).size());verify(scopes).assertCanAssign(1L);verifyNoMoreInteractions(scopes);}
+    @Test void invalidWeightSumIsRejected(){properties.setAreaWeight(new BigDecimal("0.20"));assertThrows(BusinessException.class,()->service.recommend(1L));}
+    @Test void negativeWeightIsRejected(){properties.setSkillWeight(new BigDecimal("-0.10"));properties.setAreaWeight(new BigDecimal("0.60"));assertThrows(BusinessException.class,()->service.recommend(1L));}
+}

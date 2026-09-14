@@ -12,6 +12,9 @@ import com.cq.maintenance.equipment.mapper.EquipmentMapper;
 import com.cq.maintenance.organization.mapper.OrganizationMapper;
 import com.cq.maintenance.workorder.mapper.WorkOrderMapper;
 import com.cq.maintenance.maintenance.mapper.MaintenanceMapper;
+import com.cq.maintenance.dispatch.mapper.DispatchMapper;
+import com.cq.maintenance.sla.mapper.SlaMapper;
+import com.cq.maintenance.notification.mapper.NotificationMapper;
 import com.cq.maintenance.system.entity.SysUser;
 import com.cq.maintenance.system.vo.MenuVO;
 import com.cq.maintenance.system.vo.UserSummaryVO;
@@ -49,6 +52,9 @@ class AuthFlowIntegrationTest {
     @MockitoBean private WorkOrderMapper workOrderMapper;
     @MockitoBean private InventoryMapper inventoryMapper;
     @MockitoBean private MaintenanceMapper maintenanceMapper;
+    @MockitoBean private DispatchMapper dispatchMapper;
+    @MockitoBean private SlaMapper slaMapper;
+    @MockitoBean private NotificationMapper notificationMapper;
 
     @BeforeEach
     void setUp() {

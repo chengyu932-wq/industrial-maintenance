@@ -7,6 +7,8 @@ import com.cq.maintenance.workorder.vo.*;
 import com.cq.maintenance.inventory.dto.*;
 import com.cq.maintenance.inventory.service.InventoryService;
 import com.cq.maintenance.inventory.vo.WorkOrderSpareVO;
+import com.cq.maintenance.dispatch.service.DispatchRecommendationService;
+import com.cq.maintenance.dispatch.vo.DispatchRecommendationVO;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,11 +17,12 @@ import org.springframework.web.bind.annotation.*;
 
 @Validated @RestController @RequestMapping("/api/work-orders")
 public class WorkOrderController {
-    private final WorkOrderService service;private final InventoryService inventory;public WorkOrderController(WorkOrderService service,InventoryService inventory){this.service=service;this.inventory=inventory;}
+    private final WorkOrderService service;private final InventoryService inventory;private final DispatchRecommendationService recommendations;public WorkOrderController(WorkOrderService service,InventoryService inventory,DispatchRecommendationService recommendations){this.service=service;this.inventory=inventory;this.recommendations=recommendations;}
     @GetMapping @PreAuthorize("hasAuthority('workorder:list')") public ApiResponse<PageResult<WorkOrderListVO>> page(@Valid WorkOrderQuery query){return ApiResponse.success(service.page(query));}
     @GetMapping("/{id}") @PreAuthorize("hasAuthority('workorder:view')") public ApiResponse<WorkOrderDetailVO> detail(@PathVariable Long id){return ApiResponse.success(service.detail(id));}
     @GetMapping("/{id}/flows") @PreAuthorize("hasAuthority('workorder:view')") public ApiResponse<List<WorkOrderFlowVO>> flows(@PathVariable Long id){return ApiResponse.success(service.flows(id));}
     @GetMapping("/{id}/engineers") @PreAuthorize("hasAuthority('workorder:assign')") public ApiResponse<List<EngineerOptionVO>> engineers(@PathVariable Long id){return ApiResponse.success(service.engineers(id));}
+    @GetMapping("/{id}/dispatch-candidates") @PreAuthorize("hasAuthority('workorder:assign')") public ApiResponse<List<DispatchRecommendationVO>> dispatchCandidates(@PathVariable Long id){return ApiResponse.success(recommendations.recommend(id));}
     @PostMapping("/{id}/assign") @PreAuthorize("hasAuthority('workorder:assign')") public ApiResponse<Void> assign(@PathVariable Long id,@Valid @RequestBody DispatchRequest input){service.assign(id,input);return ApiResponse.success(null);}
     @PostMapping("/{id}/accept") @PreAuthorize("hasAuthority('workorder:process')") public ApiResponse<Void> acceptResponse(@PathVariable Long id){service.acceptResponse(id);return ApiResponse.success(null);}
     @PostMapping("/{id}/start") @PreAuthorize("hasAuthority('workorder:process')") public ApiResponse<Void> start(@PathVariable Long id){service.start(id);return ApiResponse.success(null);}

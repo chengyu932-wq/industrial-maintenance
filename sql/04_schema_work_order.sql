@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS mnt_repair_request (
     status VARCHAR(20) NOT NULL DEFAULT 'SUBMITTED' COMMENT 'SUBMITTED/CONVERTED/CANCELLED',
     cancelled_at DATETIME NULL COMMENT '取消时间',
     cancel_reason VARCHAR(500) NULL COMMENT '取消原因',
+    sla_rule_id BIGINT NULL COMMENT '创建时绑定的 SLA 规则 ID（逻辑关联 mnt_sla_rule.id）',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
@@ -62,6 +63,7 @@ CREATE TABLE IF NOT EXISTS mnt_work_order (
     KEY idx_work_order_equipment_status (equipment_id, status),
     KEY idx_work_order_completed (completed_at),
     KEY idx_work_order_pm_plan (pm_plan_id),
+    KEY idx_work_order_sla_rule (sla_rule_id),
     CONSTRAINT chk_work_order_type CHECK (work_order_type IN ('REPAIR', 'MAINTENANCE')),
     CONSTRAINT chk_work_order_priority CHECK (priority IN ('URGENT', 'IMPORTANT', 'NORMAL')),
     CONSTRAINT chk_work_order_status CHECK (
@@ -182,7 +184,7 @@ CREATE TABLE IF NOT EXISTS mnt_sla_event (
     handled_at DATETIME NULL COMMENT '处理时间',
     remark VARCHAR(500) NULL COMMENT '说明',
     PRIMARY KEY (id),
-    KEY idx_sla_event_order_type (work_order_id, event_type),
+    UNIQUE KEY uk_sla_event_order_type (work_order_id, event_type),
     KEY idx_sla_event_handled_time (handled, occurred_at),
     CONSTRAINT chk_sla_event_type CHECK (event_type IN ('RESPONSE_TIMEOUT', 'RESOLVE_TIMEOUT', 'ESCALATION')),
     CONSTRAINT chk_sla_event_handled CHECK (handled IN (0, 1))

@@ -26,6 +26,9 @@ public class WorkOrder {
     private LocalDateTime completedAt;
     private LocalDateTime cancelledAt;
     private String cancelReason;
+    private Long slaRuleId;
+    private LocalDateTime slaResponseDeadline;
+    private LocalDateTime slaResolveDeadline;
     private Integer acceptanceReturnCount;
     private Long createdBy;
     private LocalDateTime updatedAt;

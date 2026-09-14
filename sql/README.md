@@ -24,6 +24,9 @@
 | 16 | `15_stage7_permissions.sql` | 第7阶段仓库、备件、库存和工单备件权限 |
 | 17 | `16_stage7_demo_data.sql` | 可选：第7阶段仓库、备件、期初库存和授权演示数据 |
 | 18 | `17_stage8_permissions.sql` | 第8阶段预防性维护菜单与按钮权限 |
+| 19 | `18_stage9_schema.sql` | 第9阶段技能映射、SLA 绑定与超时幂等增量结构 |
+| 20 | `19_stage9_permissions.sql` | 第9阶段 SLA 与消息权限 |
+| 21 | `20_stage9_demo_data.sql` | 可选：第9阶段技能映射演示数据 |
 
 在 MySQL 客户端中依次执行：
 
@@ -43,10 +46,13 @@ SOURCE D:/BS/industrial-maintenance/sql/12_stage4_permissions.sql;
 SOURCE D:/BS/industrial-maintenance/sql/14_stage5_permissions.sql;
 SOURCE D:/BS/industrial-maintenance/sql/15_stage7_permissions.sql;
 SOURCE D:/BS/industrial-maintenance/sql/17_stage8_permissions.sql;
+SOURCE D:/BS/industrial-maintenance/sql/18_stage9_schema.sql;
+SOURCE D:/BS/industrial-maintenance/sql/19_stage9_permissions.sql;
 -- 仅本地开发/答辩演示时执行：
 SOURCE D:/BS/industrial-maintenance/sql/11_dev_auth_seed.sql;
 SOURCE D:/BS/industrial-maintenance/sql/13_stage4_demo_data.sql;
 SOURCE D:/BS/industrial-maintenance/sql/16_stage7_demo_data.sql;
+SOURCE D:/BS/industrial-maintenance/sql/20_stage9_demo_data.sql;
 ```
 
 ## 初始化与重复执行

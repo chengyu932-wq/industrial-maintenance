@@ -20,7 +20,7 @@ public interface WorkOrderMapper extends BaseMapper<WorkOrder> {
     String LIST_COLUMNS="wo.id,wo.work_order_no,wo.work_order_type,wo.repair_request_id,rr.request_no,wo.equipment_id,e.equipment_no,e.equipment_name,"+
         "w.id workshop_id,w.workshop_name,wo.priority,wo.status,rr.reporter_id,reporter.real_name reporter_name,wo.assigned_engineer_id,"+
         "engineer.real_name assigned_engineer_name,wo.assigned_team_id,team.team_name assigned_team_name,wo.created_at,wo.assigned_at,wo.accepted_at,"+
-        "wo.started_at,wo.submitted_at,wo.completed_at,wo.acceptance_return_count,wo.pm_plan_id";
+        "wo.started_at,wo.submitted_at,wo.completed_at,wo.acceptance_return_count,wo.pm_plan_id,wo.sla_rule_id,wo.sla_response_deadline,wo.sla_resolve_deadline";
     String SCOPE_SQL="<if test='scope.allData == false'> AND (<choose>"+
         "<when test='scope.mode == &quot;SUPERVISOR&quot;'><if test='scope.workshopId != null'>w.id=#{scope.workshopId}</if><if test='scope.workshopId == null'>1=0</if>"+
         "<if test='scope.teamIds != null and scope.teamIds.size() > 0'> OR wo.assigned_team_id IN <foreach collection='scope.teamIds' item='id' open='(' separator=',' close=')'>#{id}</foreach> OR e.responsible_team_id IN <foreach collection='scope.teamIds' item='id' open='(' separator=',' close=')'>#{id}</foreach></if></when>"+
@@ -48,9 +48,9 @@ public interface WorkOrderMapper extends BaseMapper<WorkOrder> {
     @Insert("INSERT INTO mnt_work_order(work_order_no,work_order_type,repair_request_id,pm_plan_id,equipment_id,priority,status,created_by) VALUES(#{workOrderNo},#{workOrderType},#{repairRequestId},#{pmPlanId},#{equipmentId},#{priority},#{status},#{createdBy})")
     @Options(useGeneratedKeys=true,keyProperty="id") int insertWorkOrder(WorkOrder order);
 
-    @Select("SELECT id,work_order_no,work_order_type,repair_request_id,pm_plan_id,equipment_id,priority,status,assigned_engineer_id,assigned_team_id,created_at,assigned_at,accepted_at,started_at,submitted_at,completed_at,cancelled_at,cancel_reason,acceptance_return_count,created_by,updated_at FROM mnt_work_order WHERE id=#{id} FOR UPDATE")
+    @Select("SELECT id,work_order_no,work_order_type,repair_request_id,pm_plan_id,equipment_id,priority,status,assigned_engineer_id,assigned_team_id,created_at,assigned_at,accepted_at,started_at,submitted_at,completed_at,cancelled_at,cancel_reason,sla_rule_id,sla_response_deadline,sla_resolve_deadline,acceptance_return_count,created_by,updated_at FROM mnt_work_order WHERE id=#{id} FOR UPDATE")
     WorkOrder lockWorkOrder(Long id);
-    @Select("SELECT id,work_order_no,work_order_type,repair_request_id,pm_plan_id,equipment_id,priority,status,assigned_engineer_id,assigned_team_id,created_at,assigned_at,accepted_at,started_at,submitted_at,completed_at,cancelled_at,cancel_reason,acceptance_return_count,created_by,updated_at FROM mnt_work_order WHERE id=#{id}")
+    @Select("SELECT id,work_order_no,work_order_type,repair_request_id,pm_plan_id,equipment_id,priority,status,assigned_engineer_id,assigned_team_id,created_at,assigned_at,accepted_at,started_at,submitted_at,completed_at,cancelled_at,cancel_reason,sla_rule_id,sla_response_deadline,sla_resolve_deadline,acceptance_return_count,created_by,updated_at FROM mnt_work_order WHERE id=#{id}")
     WorkOrder findWorkOrder(Long id);
 
     @Select("<script>SELECT "+LIST_COLUMNS+LIST_FROM+"<where>1=1 "+QUERY_SQL+SCOPE_SQL+"</where> ORDER BY wo.created_at DESC,wo.id DESC LIMIT #{q.size} OFFSET #{q.offset}</script>")

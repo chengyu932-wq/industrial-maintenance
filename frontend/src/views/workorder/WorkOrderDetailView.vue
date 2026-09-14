@@ -17,6 +17,7 @@ const actionLoading = shallowRef(false)
 const detail = shallowRef<any>(null)
 const maintenanceDetail = shallowRef<any>(null)
 const engineers = shallowRef<any[]>([])
+const recommendations = shallowRef<any[]>([])
 const warehouseOptions = shallowRef<any[]>([])
 const spareOptions = shallowRef<any[]>([])
 const dispatchDialog = reactive<any>({ visible: false, engineerId: null, teamId: null, reason: '' })
@@ -31,6 +32,12 @@ const canProcess = computed(() => auth.hasPermission('workorder:process') && ord
 const canIssueSpare = computed(() => !isMaintenance.value && auth.hasPermission('inventory:issue') && canProcess.value && order.value?.status === 'PROCESSING')
 const activeStep = computed(() => workOrderStep(order.value?.status))
 const isExceptionState = computed(() => ['SUSPENDED', 'CANCELLED'].includes(order.value?.status))
+const slaState = computed(() => {
+  if (isMaintenance.value || !order.value?.slaRuleId) return null
+  const now = Date.now(); const response = order.value.slaResponseDeadline ? new Date(order.value.slaResponseDeadline).getTime() : null
+  const resolve = order.value.slaResolveDeadline ? new Date(order.value.slaResolveDeadline).getTime() : null
+  return { responseOverdue: !order.value.acceptedAt && response !== null && now > response, resolveOverdue: !['COMPLETED','CANCELLED'].includes(order.value.status) && resolve !== null && now > resolve }
+})
 
 async function load(showLoading = true) {
   if (showLoading) loading.value = true
@@ -51,11 +58,12 @@ async function perform(action: () => Promise<any>, message: string) {
 }
 async function openDispatch() {
   actionLoading.value = true
-  try { engineers.value = (await api.engineers(order.value.id)).data; Object.assign(dispatchDialog, { visible: true, engineerId: null, teamId: null, reason: '' }) }
+  try { const requests:any[]=[api.engineers(order.value.id)];if(!isMaintenance.value)requests.push(api.dispatchCandidates(order.value.id));const result=await Promise.all(requests);engineers.value=result[0].data;recommendations.value=result[1]?.data||[]; Object.assign(dispatchDialog, { visible: true, engineerId: null, teamId: null, reason: '' }) }
   catch (e: any) { ElMessage.error(e.response?.data?.message || '工程师列表加载失败') }
   finally { actionLoading.value = false }
 }
 function engineerChanged(id: number) { const item = engineers.value.find(i => i.id === id); dispatchDialog.teamId = item?.teamId || null }
+function selectRecommendation(item:any){dispatchDialog.engineerId=item.engineerId;dispatchDialog.teamId=item.teamId;dispatchDialog.reason=`采纳智能推荐（综合评分 ${Number(item.totalScore*100).toFixed(1)}）`}
 async function assign() { if (!dispatchDialog.engineerId) return ElMessage.warning('请选择工程师'); if (await perform(() => api.assign(order.value.id, { engineerId: dispatchDialog.engineerId, teamId: dispatchDialog.teamId, reason: dispatchDialog.reason }), '派单成功')) dispatchDialog.visible = false }
 async function reasonAction(kind: 'suspend' | 'resume') {
   try { const { value } = await ElMessageBox.prompt(kind === 'suspend' ? '请输入挂起原因' : '请输入恢复处理说明', kind === 'suspend' ? '挂起工单' : '恢复工单', { inputPattern: /\S+/, inputErrorMessage: '原因不能为空', type: 'warning' }); await perform(() => api[kind](order.value.id, { reason: value }), kind === 'suspend' ? '工单已挂起' : '工单已恢复处理') }
@@ -81,7 +89,7 @@ onMounted(load)
   <section class="module-page" v-loading="loading">
     <header class="module-header">
       <div><p class="eyebrow">WORK ORDER DETAIL</p><h1>{{ order?.workOrderNo || '工单详情' }}</h1><p v-if="order">{{ order.equipmentName }} · {{ order.workshopName }}</p></div>
-      <div class="header-actions"><el-button @click="router.push('/work-orders')">返回列表</el-button><el-button v-if="order?.status === 'PENDING_ASSIGN'" v-permission="'workorder:assign'" type="primary" :loading="actionLoading" @click="openDispatch">人工派单</el-button><el-button v-if="['PENDING_ASSIGN', 'ASSIGNED'].includes(order?.status)" v-permission="'workorder:cancel'" type="danger" plain :disabled="actionLoading" @click="cancelDialog.visible = true">取消工单</el-button></div>
+      <div class="header-actions"><el-button @click="router.push('/work-orders')">返回列表</el-button><el-button v-if="order?.status === 'PENDING_ASSIGN'" v-permission="'workorder:assign'" type="primary" :loading="actionLoading" @click="openDispatch">{{isMaintenance?'人工派单':'智能推荐派单'}}</el-button><el-button v-if="['PENDING_ASSIGN', 'ASSIGNED'].includes(order?.status)" v-permission="'workorder:cancel'" type="danger" plain :disabled="actionLoading" @click="cancelDialog.visible = true">取消工单</el-button></div>
     </header>
 
     <template v-if="order">
@@ -99,6 +107,11 @@ onMounted(load)
       <el-card shadow="never">
         <template #header><div class="card-heading"><div class="card-title"><strong>处理进度</strong><small>主流程进度；异常状态单独标识</small></div><el-tag v-if="isExceptionState" :type="workOrderStatusType(order.status)">{{ workOrderStatusLabel(order.status) }}</el-tag></div></template>
         <div class="workflow-steps"><el-steps :active="activeStep" finish-status="success" align-center><el-step title="待派单"/><el-step title="已派单"/><el-step title="处理中"/><el-step title="待验收"/><el-step title="已完成"/></el-steps></div>
+      </el-card>
+
+      <el-card v-if="!isMaintenance" shadow="never" class="sla-card">
+        <template #header><div class="card-heading"><div class="card-title"><strong>SLA 时限</strong><small>从工单创建时间起连续计时，挂起不暂停</small></div><el-tag v-if="slaState" :type="slaState.responseOverdue||slaState.resolveOverdue?'danger':'success'">{{slaState.responseOverdue||slaState.resolveOverdue?'已超时':'计时中'}}</el-tag></div></template>
+        <el-descriptions :column="2" border><el-descriptions-item label="响应截止">{{order.slaResponseDeadline||'未匹配规则'}}</el-descriptions-item><el-descriptions-item label="实际响应">{{order.acceptedAt||'尚未接单'}}</el-descriptions-item><el-descriptions-item label="解决截止">{{order.slaResolveDeadline||'未匹配规则'}}</el-descriptions-item><el-descriptions-item label="实际解决">{{order.completedAt||'尚未完成'}}</el-descriptions-item></el-descriptions>
       </el-card>
 
       <el-card v-if="canProcess && ['ASSIGNED', 'PROCESSING', 'SUSPENDED'].includes(order.status)" shadow="never" class="action-card">
@@ -124,7 +137,7 @@ onMounted(load)
       </div>
     </template>
 
-    <el-dialog v-model="dispatchDialog.visible" title="人工派单" width="520px"><el-alert v-if="order" :title="`${order.workOrderNo} · ${order.equipmentName}`" :description="`${order.workshopName || '位置未填写'} · ${priorityLabel(order.priority)} · ${detail.repairRequest?.faultDescription || '暂无故障描述'}`" type="info" :closable="false"/><el-form label-width="90px" class="dialog-form"><el-form-item label="维修工程师" required><el-select v-model="dispatchDialog.engineerId" style="width:100%" @change="engineerChanged"><el-option v-for="item in engineers" :key="item.id" :label="`${item.realName} · ${item.teamName || '未分组'}`" :value="item.id"/></el-select></el-form-item><el-form-item label="负责班组"><el-input :model-value="engineers.find(i => i.id === dispatchDialog.engineerId)?.teamName || '选择工程师后自动确定'" disabled/></el-form-item><el-form-item label="派单说明"><el-input v-model="dispatchDialog.reason" type="textarea" :rows="3"/></el-form-item></el-form><template #footer><el-button @click="dispatchDialog.visible = false">取消</el-button><el-button type="primary" :loading="actionLoading" @click="assign">确认派单</el-button></template></el-dialog>
+    <el-dialog v-model="dispatchDialog.visible" :title="isMaintenance?'人工派单':'智能派单推荐'" width="760px"><el-alert v-if="order" :title="`${order.workOrderNo} · ${order.equipmentName}`" :description="`${order.workshopName || '位置未填写'} · ${priorityLabel(order.priority)} · ${detail.repairRequest?.faultDescription || '暂无故障描述'}`" type="info" :closable="false"/><div v-if="!isMaintenance" class="recommendation-section"><div class="recommendation-heading"><strong>Top {{recommendations.length}} 推荐</strong><span>系统只提供解释性排序，最终由主管确认</span></div><div v-if="recommendations.length" class="recommendation-list"><button v-for="(item,index) in recommendations" :key="item.engineerId" type="button" class="recommendation-item" :class="{selected:dispatchDialog.engineerId===item.engineerId}" @click="selectRecommendation(item)"><span class="recommendation-rank">{{index+1}}</span><span class="recommendation-person"><strong>{{item.engineerName}}</strong><small>{{item.teamName||'未分组'}} · {{item.currentActiveOrders}} 张在处</small></span><span class="recommendation-score">{{Number(item.totalScore*100).toFixed(1)}}<small>综合分</small></span><span class="recommendation-detail">技能 {{Number(item.skillScore*100).toFixed(0)}} · 负载 {{Number(item.loadScore*100).toFixed(0)}} · 班组 {{Number(item.teamScore*100).toFixed(0)}} · 区域 {{Number(item.areaScore*100).toFixed(0)}}<small>{{item.recommendationReasons.join('；')}}</small></span></button></div><el-empty v-else description="当前没有符合条件的可派工程师" :image-size="64"/></div><el-divider v-if="!isMaintenance" content-position="left">主管最终选择</el-divider><el-form label-width="90px" class="dialog-form"><el-form-item label="维修工程师" required><el-select v-model="dispatchDialog.engineerId" filterable style="width:100%" @change="engineerChanged"><el-option v-for="item in engineers" :key="item.id" :label="`${item.realName} · ${item.teamName || '未分组'}`" :value="item.id"/></el-select><small class="manual-choice-tip">可选择推荐外的其他合法工程师</small></el-form-item><el-form-item label="负责班组"><el-input :model-value="engineers.find(i => i.id === dispatchDialog.engineerId)?.teamName || '选择工程师后自动确定'" disabled/></el-form-item><el-form-item label="派单说明"><el-input v-model="dispatchDialog.reason" type="textarea" :rows="2"/></el-form-item></el-form><template #footer><el-button @click="dispatchDialog.visible = false">取消</el-button><el-button type="primary" :loading="actionLoading" @click="assign">确认派单</el-button></template></el-dialog>
     <el-dialog v-model="recordDialog.visible" title="维修过程记录" width="680px"><el-form label-width="90px"><el-form-item label="排查过程" required><el-input v-model="record.inspectionProcess" type="textarea" :rows="2"/></el-form-item><el-form-item label="根因分析" required><el-input v-model="record.rootCause" type="textarea" :rows="2"/></el-form-item><el-form-item label="处理措施" required><el-input v-model="record.repairAction" type="textarea" :rows="2"/></el-form-item><el-form-item label="维修结果" required><el-input v-model="record.repairResult" type="textarea" :rows="2"/></el-form-item><el-form-item label="维修工时"><el-input-number v-model="record.laborHours" :min="0" :precision="2"/></el-form-item><el-form-item label="停机分钟"><el-input-number v-model="record.downtimeMinutes" :min="0"/></el-form-item><el-form-item label="是否修复"><el-switch v-model="record.repairable" active-text="已修复" inactive-text="无法修复"/></el-form-item></el-form><template #footer><el-button @click="recordDialog.visible = false">取消</el-button><el-button type="primary" :loading="actionLoading" @click="saveRecord">保存记录</el-button></template></el-dialog>
     <el-dialog v-model="cancelDialog.visible" :title="`取消${isMaintenance?'保养':'维修'}工单`" width="520px"><el-alert :title="isMaintenance?'取消保养工单不会改变设备状态。':'取消不会自动恢复设备状态，请明确选择后续状态。'" type="warning" :closable="false"/><el-form label-width="100px" class="dialog-form"><el-form-item label="取消原因" required><el-input v-model="cancelDialog.reason" type="textarea" :rows="3"/></el-form-item><el-form-item v-if="!isMaintenance" label="设备状态" required><el-radio-group v-model="cancelDialog.equipmentTargetStatus"><el-radio value="RUNNING">确认正常，恢复运行</el-radio><el-radio value="STOPPED">故障仍在，设备停用</el-radio></el-radio-group></el-form-item></el-form><template #footer><el-button @click="cancelDialog.visible = false">返回</el-button><el-button type="danger" :loading="actionLoading" @click="cancelOrder">确认取消</el-button></template></el-dialog>
     <el-dialog v-model="spareDialog.visible" title="领用维修备件" width="560px"><el-alert title="提交后立即扣减所选仓库库存，并生成工单领用记录和库存流水。" type="info" :closable="false"/><el-form label-width="90px" class="dialog-form"><el-form-item label="领用仓库" required><el-select v-model="spareDialog.warehouseId" style="width:100%"><el-option v-for="w in warehouseOptions" :key="w.id" :label="`${w.warehouseNo} · ${w.warehouseName}`" :value="w.id"/></el-select></el-form-item><el-form-item label="备件" required><el-select v-model="spareDialog.sparePartId" filterable style="width:100%"><el-option v-for="p in spareOptions" :key="p.id" :label="`${p.spareNo} · ${p.spareName} · ${p.specification||'无规格'}`" :value="p.id"/></el-select></el-form-item><el-form-item label="领用数量" required><el-input-number v-model="spareDialog.qty" :min="0.01" :precision="2" style="width:100%"/></el-form-item><el-form-item label="领用说明"><el-input v-model="spareDialog.remark" type="textarea" :rows="2"/></el-form-item></el-form><template #footer><el-button @click="spareDialog.visible=false">取消</el-button><el-button type="primary" :loading="actionLoading" @click="issueSpare">确认领用</el-button></template></el-dialog>

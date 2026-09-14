@@ -2,6 +2,7 @@ import http from './http'
 export const page = (params) => http.get('/work-orders', { params })
 export const detail = (id) => http.get(`/work-orders/${id}`)
 export const engineers = (id) => http.get(`/work-orders/${id}/engineers`)
+export const dispatchCandidates = (id) => http.get(`/work-orders/${id}/dispatch-candidates`)
 export const assign = (id, data) => http.post(`/work-orders/${id}/assign`, data)
 export const acceptResponse = (id) => http.post(`/work-orders/${id}/accept`)
 export const start = (id) => http.post(`/work-orders/${id}/start`)

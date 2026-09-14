@@ -12,6 +12,13 @@ CREATE TABLE IF NOT EXISTS eqp_type (
     CONSTRAINT chk_eqp_type_status CHECK (status IN ('ENABLED', 'DISABLED'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='设备类型表';
 
+CREATE TABLE IF NOT EXISTS eqp_type_skill (
+    type_id BIGINT NOT NULL COMMENT '设备类型 ID（逻辑关联 eqp_type.id）',
+    skill_id BIGINT NOT NULL COMMENT '所需技能 ID（逻辑关联 org_skill.id）',
+    PRIMARY KEY (type_id, skill_id),
+    KEY idx_eqp_type_skill_skill (skill_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='设备类型所需技能映射';
+
 CREATE TABLE IF NOT EXISTS eqp_equipment (
     id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
     equipment_no VARCHAR(50) NOT NULL COMMENT '设备编号',
