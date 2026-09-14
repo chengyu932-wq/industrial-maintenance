@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, shallowRef } from 'vue'
+import { computed, nextTick, onMounted, reactive, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as api from '../../api/workorder'
 import * as inventoryApi from '../../api/inventory'
 import * as maintenanceApi from '../../api/maintenance'
+import * as knowledgeApi from '../../api/knowledge'
 import { useAuthStore } from '../../stores/auth'
 import { priorityLabel, priorityType, workOrderStatusLabel, workOrderStatusType, workOrderStep } from '../../utils/workOrderStatus'
 import { issueStatusLabel } from '../../utils/inventoryStatus'
@@ -18,6 +19,8 @@ const detail = shallowRef<any>(null)
 const maintenanceDetail = shallowRef<any>(null)
 const engineers = shallowRef<any[]>([])
 const recommendations = shallowRef<any[]>([])
+const similarOrders = shallowRef<any[]>([])
+const similarLoading = shallowRef(false)
 const warehouseOptions = shallowRef<any[]>([])
 const spareOptions = shallowRef<any[]>([])
 const dispatchDialog = reactive<any>({ visible: false, engineerId: null, teamId: null, reason: '' })
@@ -46,9 +49,12 @@ async function load(showLoading = true) {
     if (!showLoading) { detail.value = null; await nextTick() }
     detail.value = fresh
     maintenanceDetail.value = fresh.workOrder?.workOrderType === 'MAINTENANCE' ? (await maintenanceApi.workOrder(Number(route.params.id))).data : null
+    if (fresh.workOrder?.workOrderType === 'REPAIR' && auth.hasPermission('workorder:similar')) await loadSimilar(fresh.workOrder.id)
   } catch (e: any) { ElMessage.error(e.response?.data?.message || '工单详情加载失败') }
   finally { if (showLoading) loading.value = false }
 }
+async function loadSimilar(id:number){similarLoading.value=true;try{similarOrders.value=(await api.similar(id)).data}catch(e:any){similarOrders.value=[];ElMessage.error(e.response?.data?.message||'历史相似工单加载失败')}finally{similarLoading.value=false}}
+async function createKnowledge(){actionLoading.value=true;try{const response=await knowledgeApi.createFromWorkOrder(order.value.id);ElMessage.success('知识草稿已按维修记录预填');await router.push({path:'/knowledge',query:{article:response.data}})}catch(e:any){ElMessage.error(e.response?.data?.message||'知识草稿创建失败')}finally{actionLoading.value=false}}
 async function perform(action: () => Promise<any>, message: string) {
   if (actionLoading.value) return false
   actionLoading.value = true
@@ -83,6 +89,7 @@ async function returnSpare(){if(!returnDialog.remark.trim())return ElMessage.war
 const actionLabels: any = { CREATE: '创建工单', ASSIGN: '人工派单', ACCEPT: '工程师接单', START: '开始处理', SUSPEND: '挂起', RESUME: '恢复', SUBMIT: '提交验收', ACCEPT_PASS: '验收通过', ACCEPT_RETURN: '验收退回', CANCEL: '取消' }
 function actionLabel(action:string){return action==='START'?(isMaintenance.value?'开始保养':'开始维修'):(actionLabels[action]||action)}
 onMounted(load)
+watch(()=>route.params.id,()=>load())
 </script>
 
 <template>
@@ -124,6 +131,10 @@ onMounted(load)
         <p>{{isMaintenance?'验收通过后形成设备保养履历；退回时工单重新进入处理中。':'验收通过后工单完成，设备恢复运行；退回维修必须填写原因。'}}</p>
         <div class="workflow-actions"><el-button type="primary" :loading="actionLoading" @click="pass">验收通过</el-button><el-button type="danger" plain :disabled="actionLoading" @click="reject">{{isMaintenance?'退回整改':'退回维修'}}</el-button></div>
       </el-card>
+
+      <el-card v-if="!isMaintenance&&order.status==='COMPLETED'&&auth.hasPermission('knowledge:create')" shadow="never" class="action-card"><template #header><div class="card-title"><strong>沉淀维修知识</strong><small>将本次故障现象、根因、处理方法、结果和实际备件生成草稿</small></div></template><p>工单已完成。知识不会自动发布，创建草稿后需人工检查并提交主管审核。</p><el-button type="primary" :loading="actionLoading" @click="createKnowledge">创建知识草稿</el-button></el-card>
+
+      <el-card v-if="!isMaintenance&&auth.hasPermission('workorder:similar')" shadow="never"><template #header><div class="card-heading"><div class="card-title"><strong>历史相似工单</strong><small>基于故障描述的 TF-IDF 与余弦相似度，仅供维修经验参考</small></div><el-tag effect="plain">Top {{similarOrders.length}}</el-tag></div></template><div v-loading="similarLoading"><div v-if="similarOrders.length" class="similar-list"><div v-for="item in similarOrders" :key="item.workOrderId" class="similar-item"><span class="similar-score">{{(item.similarity*100).toFixed(1)}}<small>%</small></span><span class="similar-copy"><strong>{{item.workOrderNo}} · {{item.equipmentName}}</strong><span>{{item.faultDescription}}</span><small>原因：{{item.rootCause||'未记录'}} · 处理：{{item.repairAction||'未记录'}} · 结果：{{item.repairResult||'未记录'}}</small><small>备件：{{item.spareSummary||'未使用备件'}}</small></span><el-button link type="primary" @click="router.push(`/work-orders/${item.workOrderId}`)">查看工单</el-button></div></div><el-empty v-else description="暂无正相似度的历史完成维修工单" :image-size="72"/></div></el-card>
 
       <div class="detail-grid">
         <div class="section-stack">

@@ -143,6 +143,24 @@ button, input, textarea, select { font: inherit; }
 .notification-copy strong { color: var(--ink-900); }
 .notification-copy span { color: var(--ink-700); font-size: 13px; }
 .notification-copy small,.notification-arrow { color: var(--ink-500); font-size: 12px; }
+.knowledge-title { width: 100%; display: grid; gap: 4px; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.knowledge-title strong { color: var(--ink-900); font-size: 14px; }
+.knowledge-title small { overflow: hidden; color: var(--ink-500); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.knowledge-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 24px; }
+.knowledge-detail-head h2 { margin: 12px 0 7px; color: var(--ink-900); font-size: 24px; }
+.knowledge-detail-head p { margin: 0; color: var(--ink-500); }
+.knowledge-sections { display: grid; gap: 12px; margin-bottom: 22px; }
+.knowledge-sections article { padding: 16px 18px; border: 1px solid var(--line); border-radius: 8px; background: #fbfcfd; }
+.knowledge-sections small { color: var(--brand-600); font-weight: 700; }
+.knowledge-sections p { margin: 8px 0 0; color: var(--ink-700); line-height: 1.75; white-space: pre-wrap; }
+.drawer-actions { display: flex; gap: 10px; margin-top: 20px; }
+.similar-list { display: grid; gap: 10px; }
+.similar-item { display: grid; grid-template-columns: 68px minmax(0,1fr) auto; gap: 14px; align-items: start; padding: 14px 16px; border: 1px solid var(--line); border-radius: 8px; background: #fbfcfd; }
+.similar-score { color: var(--brand-700); font-size: 21px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.similar-copy { display: grid; gap: 5px; min-width: 0; }
+.similar-copy strong { color: var(--ink-900); }
+.similar-copy span { color: var(--ink-700); font-size: 13px; }
+.similar-copy small { color: var(--ink-500); font-size: 12px; }
 
 .home-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(300px, .8fr); gap: 18px; }
 .welcome-panel { min-height: 270px; padding: 36px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-card); }
@@ -216,6 +234,9 @@ button, input, textarea, select { font: inherit; }
   .recommendation-detail { grid-column: 2 / -1; }
   .notification-row { grid-template-columns: 12px 1fr auto; }
   .notification-arrow { display: none; }
+  .knowledge-detail-head { display: grid; }
+  .similar-item { grid-template-columns: 58px minmax(0,1fr); }
+  .similar-item .el-button { grid-column: 2; justify-self: start; }
 }
 
 @media (prefers-reduced-motion: reduce) {
