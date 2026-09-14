@@ -27,6 +27,8 @@
 | 19 | `18_stage9_schema.sql` | 第9阶段技能映射、SLA 绑定与超时幂等增量结构 |
 | 20 | `19_stage9_permissions.sql` | 第9阶段 SLA 与消息权限 |
 | 21 | `20_stage9_demo_data.sql` | 可选：第9阶段技能映射演示数据 |
+| 22 | `21_stage10_schema.sql` | 第10阶段知识维修结果、审核意见增量字段 |
+| 23 | `22_stage10_permissions.sql` | 第10阶段知识库与相似工单权限 |
 
 在 MySQL 客户端中依次执行：
 
@@ -48,6 +50,8 @@ SOURCE D:/BS/industrial-maintenance/sql/15_stage7_permissions.sql;
 SOURCE D:/BS/industrial-maintenance/sql/17_stage8_permissions.sql;
 SOURCE D:/BS/industrial-maintenance/sql/18_stage9_schema.sql;
 SOURCE D:/BS/industrial-maintenance/sql/19_stage9_permissions.sql;
+SOURCE D:/BS/industrial-maintenance/sql/21_stage10_schema.sql;
+SOURCE D:/BS/industrial-maintenance/sql/22_stage10_permissions.sql;
 -- 仅本地开发/答辩演示时执行：
 SOURCE D:/BS/industrial-maintenance/sql/11_dev_auth_seed.sql;
 SOURCE D:/BS/industrial-maintenance/sql/13_stage4_demo_data.sql;
