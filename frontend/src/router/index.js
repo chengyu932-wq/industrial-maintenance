@@ -18,6 +18,7 @@ const router = createRouter({
       { path: 'work-orders/:id', name: 'work-order-detail', component: () => import('../views/workorder/WorkOrderDetailView.vue'), meta: { title: '工单详情', permission: 'workorder:view' } },
       { path: 'maintenance-plans', name: 'maintenance-plans', component: () => import('../views/maintenance/MaintenancePlanView.vue'), meta: { title: '预防性维护', permission: 'maintenance:plan:list' } },
       { path: 'knowledge', name: 'knowledge', component: () => import('../views/knowledge/KnowledgeView.vue'), meta: { title: '故障知识库', permission: 'knowledge:list' } },
+      { path: 'statistics', name: 'statistics', component: () => import('../views/statistics/StatisticsView.vue'), meta: { title: '统计分析', permission: 'statistics:view' } },
       { path: 'sla', name: 'sla', component: () => import('../views/sla/SlaManagementView.vue'), meta: { title: 'SLA管理', permission: 'sla:rule:list' } },
       { path: 'notifications', name: 'notifications', component: () => import('../views/notification/NotificationView.vue'), meta: { title: '消息中心', permission: 'notification:list' } },
       { path: 'warehouses', name: 'warehouses', component: () => import('../views/inventory/WarehouseView.vue'), meta: { title: '仓库管理', permission: 'warehouse:list' } },

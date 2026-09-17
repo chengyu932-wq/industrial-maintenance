@@ -87,3 +87,9 @@ DB_HEALTH_ENABLED=true
 - 设备状态、工单状态、角色数据范围和库存流水类型使用英文编码，并由 MySQL `CHECK` 约束兜底。
 - 设备状态履历、工单流转、库存流水、运行小时记录和操作日志不提供普通业务删除能力。
 - 库存以 `(warehouse_id, spare_part_id)` 为唯一维度，所有数量变化必须同时生成 `inv_transaction`。
+
+## 第11阶段增量
+
+- `23_stage11_statistics.sql`：补充运行小时按统计日期查询所需索引，不新增汇总表，不保存派生 KPI。
+- `24_stage11_permissions.sql`：增加统计分析菜单及 `statistics:view` 权限，授权管理员、运维主管、工程师和仓库管理员。
+- KPI 与图表直接聚合设备状态履历、维修工单、运行小时和库存流水，口径见 `docs/第11阶段KPI统计口径设计.md`。
