@@ -1,10 +1,10 @@
 # 基于 Spring Boot 的工业设备运维管理系统
 
-本项目面向制造业设备运维管理场景，采用 B/S 架构和前后端分离模式。系统后续将围绕设备全生命周期和维修工单闭环，逐步实现设备台账、故障报修、维修工单、预防性维护、备件库存、知识库、KPI、权限控制及系统支撑能力。
+本项目面向制造业设备运维管理场景，采用 B/S 架构和前后端分离模式，围绕设备全生命周期和维修工单闭环，提供设备台账、故障报修、维修工单、预防性维护、备件库存、智能派单、SLA、知识库、KPI 统计、权限控制及系统支撑能力。
 
 ## 当前阶段
 
-已完成基础工程、数据库 SQL、第 3 阶段认证与 RBAC、第 4 阶段组织与设备管理，以及第 5 阶段故障报修和维修工单核心闭环。系统现可完成 PC/二维码入口报修、自动生成唯一主工单、人工派单、工程师接单与维修记录、挂起/恢复、提交验收、验收退回/通过、取消处置，并同步维护工单流转日志与设备状态履历。
+已完成第 1～11 阶段主体开发。系统已形成认证与 RBAC、组织与设备、故障维修工单、备件库存、预防性维护、智能派单与 SLA、知识沉淀与相似工单推荐、KPI 统计与 ECharts 看板闭环。第 11 阶段口径、API、真实数据验证和截图见 [实现与测试报告](docs/第11阶段实现与测试报告.md)。
 
 ## 技术栈
 
@@ -137,6 +137,19 @@ npm run build
 ```
 
 第 7 阶段的库存一致性设计、API、38 项新增测试与浏览器证据见 [第7阶段实现与测试报告](docs/第7阶段实现与测试报告.md)。
+
+## 第 11 阶段验证
+
+```powershell
+cd backend
+.\mvnw.cmd '-Dstage4.db-tests=true' '-Dstage5.db-tests=true' '-Dstage7.db-tests=true' '-Dstage8.db-tests=true' '-Dstage9.db-tests=true' '-Dstage10.db-tests=true' '-Dstage11.db-tests=true' test
+
+cd ..\frontend
+npm run build
+npx playwright test tests/e2e/stage11.spec.js
+```
+
+统计接口为 `GET /api/statistics/overview`、`GET /api/statistics/kpis` 和 `GET /api/statistics/charts`，统一支持近 7/30/90 天与自定义日期。完整公式、数据权限、测试结果和截图见 [第11阶段实现与测试报告](docs/第11阶段实现与测试报告.md)。
 
 ## 认证说明
 
