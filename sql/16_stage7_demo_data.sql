@@ -30,5 +30,5 @@ WHERE w.warehouse_no='WH-DEMO-02' AND p.spare_no='SP-DEMO-001' AND NOT EXISTS(SE
 INSERT INTO inv_transaction(transaction_no,warehouse_id,spare_part_id,transaction_type,qty_change,qty_before,qty_after,unit_price,operator_id,remark)
 SELECT CONCAT('TX-DEMO-',w.warehouse_no),w.id,p.id,'INBOUND',s.current_qty,0,s.current_qty,p.unit_price,u.id,'第7阶段演示期初入库'
 FROM inv_warehouse w JOIN inv_spare_part p JOIN inv_stock s ON s.warehouse_id=w.id AND s.spare_part_id=p.id JOIN sys_user u ON u.username='admin'
-WHERE w.warehouse_no IN ('WH-DEMO-01','WH-DEMO-02') AND p.spare_no='SP-DEMO-001'
-ON DUPLICATE KEY UPDATE transaction_no=transaction_no;
+WHERE w.warehouse_no IN ('WH-DEMO-01','WH-DEMO-02') AND p.spare_no='SP-DEMO-001' AND s.current_qty>0
+  AND NOT EXISTS(SELECT 1 FROM inv_transaction t WHERE t.transaction_no=CONCAT('TX-DEMO-',w.warehouse_no));

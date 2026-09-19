@@ -29,6 +29,9 @@
 | 21 | `20_stage9_demo_data.sql` | 可选：第9阶段技能映射演示数据 |
 | 22 | `21_stage10_schema.sql` | 第10阶段知识维修结果、审核意见增量字段 |
 | 23 | `22_stage10_permissions.sql` | 第10阶段知识库与相似工单权限 |
+| 24 | `23_stage11_statistics.sql` | 第11阶段 KPI 查询索引 |
+| 25 | `24_stage11_permissions.sql` | 第11阶段统计分析权限 |
+| 26 | `25_stage12_support.sql` | 第12阶段用户管理、批量导入与操作日志权限 |
 
 在 MySQL 客户端中依次执行：
 
@@ -52,6 +55,9 @@ SOURCE D:/BS/industrial-maintenance/sql/18_stage9_schema.sql;
 SOURCE D:/BS/industrial-maintenance/sql/19_stage9_permissions.sql;
 SOURCE D:/BS/industrial-maintenance/sql/21_stage10_schema.sql;
 SOURCE D:/BS/industrial-maintenance/sql/22_stage10_permissions.sql;
+SOURCE D:/BS/industrial-maintenance/sql/23_stage11_statistics.sql;
+SOURCE D:/BS/industrial-maintenance/sql/24_stage11_permissions.sql;
+SOURCE D:/BS/industrial-maintenance/sql/25_stage12_support.sql;
 -- 仅本地开发/答辩演示时执行：
 SOURCE D:/BS/industrial-maintenance/sql/11_dev_auth_seed.sql;
 SOURCE D:/BS/industrial-maintenance/sql/13_stage4_demo_data.sql;
@@ -83,7 +89,7 @@ DB_HEALTH_ENABLED=true
 
 ## 设计边界
 
-- 共 38 张表，不设置 MySQL 物理外键；实体关系通过逻辑关联字段、索引和 Service 校验保证。
+- 共 39 张表，不设置 MySQL 物理外键；实体关系通过逻辑关联字段、索引和 Service 校验保证。
 - 设备状态、工单状态、角色数据范围和库存流水类型使用英文编码，并由 MySQL `CHECK` 约束兜底。
 - 设备状态履历、工单流转、库存流水、运行小时记录和操作日志不提供普通业务删除能力。
 - 库存以 `(warehouse_id, spare_part_id)` 为唯一维度，所有数量变化必须同时生成 `inv_transaction`。
@@ -92,4 +98,5 @@ DB_HEALTH_ENABLED=true
 
 - `23_stage11_statistics.sql`：补充运行小时按统计日期查询所需索引，不新增汇总表，不保存派生 KPI。
 - `24_stage11_permissions.sql`：增加统计分析菜单及 `statistics:view` 权限，授权管理员、运维主管、工程师和仓库管理员。
+- `25_stage12_support.sql`：增加用户管理、用户 Excel 导入和操作日志查询权限；表结构仍由基础脚本创建。
 - KPI 与图表直接聚合设备状态履历、维修工单、运行小时和库存流水，口径见 `docs/第11阶段KPI统计口径设计.md`。

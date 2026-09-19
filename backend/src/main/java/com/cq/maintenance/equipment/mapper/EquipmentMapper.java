@@ -8,6 +8,7 @@ import com.cq.maintenance.equipment.entity.EquipmentType;
 import com.cq.maintenance.equipment.vo.EquipmentDetailRow;
 import com.cq.maintenance.equipment.vo.EquipmentListVO;
 import com.cq.maintenance.equipment.vo.EquipmentStatusLogVO;
+import com.cq.maintenance.equipment.vo.RuntimeHoursVO;
 import java.util.List;
 import org.apache.ibatis.annotations.*;
 
@@ -45,6 +46,10 @@ public interface EquipmentMapper extends BaseMapper<Equipment> {
     @Select("SELECT id,equipment_no,equipment_name,type_id,model,manufacturer,specifications,manufacture_date,commissioning_date,"+
         "responsible_user_id,responsible_team_id,station_id,warranty_expire_date,status,running_hours,qr_code,created_at,updated_at FROM eqp_equipment WHERE id=#{id}")
     Equipment findEquipment(Long id);
+    @Select("SELECT id,equipment_no,equipment_name,type_id,model,manufacturer,specifications,manufacture_date,commissioning_date,responsible_user_id,responsible_team_id,station_id,warranty_expire_date,status,running_hours,qr_code,created_at,updated_at FROM eqp_equipment WHERE id=#{id} FOR UPDATE") Equipment lockEquipment(Long id);
+    @Update("UPDATE eqp_equipment SET running_hours=#{total} WHERE id=#{id}") int updateRunningHours(@Param("id") Long id,@Param("total") java.math.BigDecimal total);
+    @Insert("INSERT INTO eqp_runtime_record(equipment_id,record_date,running_hours_increment,total_running_hours,source,recorded_by,remark) VALUES(#{equipmentId},#{recordDate},#{increment},#{total},'MANUAL',#{recordedBy},#{remark})") int insertRuntimeRecord(@Param("equipmentId") Long equipmentId,@Param("recordDate") java.time.LocalDate recordDate,@Param("increment") java.math.BigDecimal increment,@Param("total") java.math.BigDecimal total,@Param("recordedBy") Long recordedBy,@Param("remark") String remark);
+    @Select("SELECT r.id,r.equipment_id,r.record_date,r.running_hours_increment,r.total_running_hours,r.source,r.recorded_by,u.real_name recorder_name,r.remark,r.created_at FROM eqp_runtime_record r LEFT JOIN sys_user u ON u.id=r.recorded_by WHERE r.equipment_id=#{equipmentId} ORDER BY r.record_date DESC,r.id DESC") List<RuntimeHoursVO> findRuntimeRecords(Long equipmentId);
     @Select("SELECT COUNT(*) FROM eqp_equipment WHERE equipment_no=#{equipmentNo} AND (#{excludeId} IS NULL OR id<>#{excludeId})")
     long countEquipmentNo(@Param("equipmentNo") String equipmentNo,@Param("excludeId") Long excludeId);
     @Insert("INSERT INTO eqp_equipment(equipment_no,equipment_name,type_id,model,manufacturer,specifications,manufacture_date,commissioning_date,"+

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, shallowRef, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as api from '../../api/workorder'
@@ -20,6 +20,9 @@ const maintenanceDetail = shallowRef<any>(null)
 const engineers = shallowRef<any[]>([])
 const recommendations = shallowRef<any[]>([])
 const similarOrders = shallowRef<any[]>([])
+const attachments = shallowRef<any[]>([])
+const attachmentInput = ref<HTMLInputElement>()
+const attachmentType = shallowRef('REPAIR')
 const similarLoading = shallowRef(false)
 const warehouseOptions = shallowRef<any[]>([])
 const spareOptions = shallowRef<any[]>([])
@@ -43,17 +46,24 @@ const slaState = computed(() => {
 })
 
 async function load(showLoading = true) {
+  const id = Number(route.params.id)
+  if (!Number.isFinite(id)) return
   if (showLoading) loading.value = true
   try {
-    const fresh = (await api.detail(Number(route.params.id))).data
+    const fresh = (await api.detail(id)).data
     if (!showLoading) { detail.value = null; await nextTick() }
     detail.value = fresh
-    maintenanceDetail.value = fresh.workOrder?.workOrderType === 'MAINTENANCE' ? (await maintenanceApi.workOrder(Number(route.params.id))).data : null
+    attachments.value = (await api.attachments(id)).data
+    attachmentType.value = fresh.workOrder?.status === 'PENDING_ACCEPT' ? 'ACCEPTANCE' : fresh.workOrder?.status === 'PENDING_ASSIGN' ? 'FAULT' : 'REPAIR'
+    maintenanceDetail.value = fresh.workOrder?.workOrderType === 'MAINTENANCE' ? (await maintenanceApi.workOrder(id)).data : null
     if (fresh.workOrder?.workOrderType === 'REPAIR' && auth.hasPermission('workorder:similar')) await loadSimilar(fresh.workOrder.id)
   } catch (e: any) { ElMessage.error(e.response?.data?.message || '工单详情加载失败') }
   finally { if (showLoading) loading.value = false }
 }
 async function loadSimilar(id:number){similarLoading.value=true;try{similarOrders.value=(await api.similar(id)).data}catch(e:any){similarOrders.value=[];ElMessage.error(e.response?.data?.message||'历史相似工单加载失败')}finally{similarLoading.value=false}}
+async function exportPdf(){actionLoading.value=true;try{const blob=await api.exportPdf(order.value.id);const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=`${order.value.workOrderNo}.pdf`;link.click();URL.revokeObjectURL(url);ElMessage.success('工单 PDF 已导出')}catch(e:any){ElMessage.error(e.response?.data?.message||'PDF 导出失败')}finally{actionLoading.value=false}}
+async function uploadAttachment(event:Event){const input=event.target as HTMLInputElement;const file=input.files?.[0];input.value='';if(!file)return;actionLoading.value=true;try{await api.uploadAttachment(order.value.id,attachmentType.value,file);ElMessage.success('工单附件已上传');attachments.value=(await api.attachments(order.value.id)).data}catch(e:any){ElMessage.error(e.response?.data?.message||'附件上传失败')}finally{actionLoading.value=false}}
+async function downloadAttachment(item:any){try{const blob=await api.downloadAttachment(order.value.id,item.id);const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=item.fileName;link.click();URL.revokeObjectURL(url)}catch(e:any){ElMessage.error(e.response?.data?.message||'附件下载失败')}}
 async function createKnowledge(){actionLoading.value=true;try{const response=await knowledgeApi.createFromWorkOrder(order.value.id);ElMessage.success('知识草稿已按维修记录预填');await router.push({path:'/knowledge',query:{article:response.data}})}catch(e:any){ElMessage.error(e.response?.data?.message||'知识草稿创建失败')}finally{actionLoading.value=false}}
 async function perform(action: () => Promise<any>, message: string) {
   if (actionLoading.value) return false
@@ -96,7 +106,7 @@ watch(()=>route.params.id,()=>load())
   <section class="module-page" v-loading="loading">
     <header class="module-header">
       <div><p class="eyebrow">WORK ORDER DETAIL</p><h1>{{ order?.workOrderNo || '工单详情' }}</h1><p v-if="order">{{ order.equipmentName }} · {{ order.workshopName }}</p></div>
-      <div class="header-actions"><el-button @click="router.push('/work-orders')">返回列表</el-button><el-button v-if="order?.status === 'PENDING_ASSIGN'" v-permission="'workorder:assign'" type="primary" :loading="actionLoading" @click="openDispatch">{{isMaintenance?'人工派单':'智能推荐派单'}}</el-button><el-button v-if="['PENDING_ASSIGN', 'ASSIGNED'].includes(order?.status)" v-permission="'workorder:cancel'" type="danger" plain :disabled="actionLoading" @click="cancelDialog.visible = true">取消工单</el-button></div>
+      <div class="header-actions"><el-button @click="router.push('/work-orders')">返回列表</el-button><el-button v-if="order" :loading="actionLoading" @click="exportPdf">导出 PDF</el-button><el-button v-if="order?.status === 'PENDING_ASSIGN'" v-permission="'workorder:assign'" type="primary" :loading="actionLoading" @click="openDispatch">{{isMaintenance?'人工派单':'智能推荐派单'}}</el-button><el-button v-if="['PENDING_ASSIGN', 'ASSIGNED'].includes(order?.status)" v-permission="'workorder:cancel'" type="danger" plain :disabled="actionLoading" @click="cancelDialog.visible = true">取消工单</el-button></div>
     </header>
 
     <template v-if="order">
@@ -140,6 +150,7 @@ watch(()=>route.params.id,()=>load())
         <div class="section-stack">
           <el-card v-if="!isMaintenance" shadow="never"><template #header><div class="card-title"><strong>报修信息</strong><small>故障现象与来源</small></div></template><el-descriptions :column="2" border><el-descriptions-item label="报修人">{{ order.reporterName }}</el-descriptions-item><el-descriptions-item label="报修时间">{{ detail.repairRequest?.reportedAt || '-' }}</el-descriptions-item><el-descriptions-item label="故障描述" :span="2">{{ detail.repairRequest?.faultDescription || '-' }}</el-descriptions-item></el-descriptions></el-card>
           <el-card v-else shadow="never"><template #header><div class="card-title"><strong>保养计划</strong><small>计划来源与逐项检查要求</small></div></template><el-descriptions :column="2" border><el-descriptions-item label="计划编号">{{maintenanceDetail?.planNo}}</el-descriptions-item><el-descriptions-item label="计划名称">{{maintenanceDetail?.planName}}</el-descriptions-item></el-descriptions><div class="maintenance-checklist"><div v-for="item in maintenanceDetail?.items" :key="item.planItemId" class="maintenance-check"><div class="maintenance-check-title"><strong>{{item.itemName}} <em v-if="item.required">必检</em></strong><small>{{item.standardDescription||'无额外检查标准'}}</small></div><el-select v-model="item.result" :disabled="order.status!=='PROCESSING'||!canProcess" placeholder="检查结果"><el-option label="正常" value="NORMAL"/><el-option label="异常" value="ABNORMAL"/></el-select><el-input v-model="item.measuredValue" :disabled="order.status!=='PROCESSING'||!canProcess" placeholder="实测值（可选）"/><el-input v-model="item.remark" :disabled="order.status!=='PROCESSING'||!canProcess" placeholder="执行说明（可选）"/></div></div></el-card>
+          <el-card shadow="never"><template #header><div class="card-heading"><div class="card-title"><strong>工单附件</strong><small>故障、维修与验收现场资料，单文件不超过 10MB</small></div><div v-if="auth.hasPermission('workorder:process')||auth.hasPermission('workorder:accept')"><input ref="attachmentInput" type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.txt" hidden @change="uploadAttachment"><el-select v-model="attachmentType" size="small" style="width:110px"><el-option label="故障资料" value="FAULT"/><el-option label="维修资料" value="REPAIR"/><el-option label="验收资料" value="ACCEPTANCE"/></el-select><el-button size="small" :loading="actionLoading" @click="attachmentInput?.click()">上传附件</el-button></div></div></template><el-table v-if="attachments.length" :data="attachments" size="small"><el-table-column prop="category" label="阶段" width="90"><template #default="{row}">{{row.category==='FAULT'?'故障':row.category==='REPAIR'?'维修':'验收'}}</template></el-table-column><el-table-column prop="fileName" label="文件名" min-width="180"/><el-table-column prop="uploaderName" label="上传人" width="100"/><el-table-column prop="createdAt" label="上传时间" width="168"/><el-table-column label="操作" width="70"><template #default="{row}"><el-button link type="primary" @click="downloadAttachment(row)">下载</el-button></template></el-table-column></el-table><el-empty v-else class="detail-empty" description="暂无工单附件" :image-size="64"/></el-card>
           <el-card shadow="never"><template #header><div class="card-title"><strong>设备与责任信息</strong><small>定位设备及当前处理人员</small></div></template><el-descriptions :column="2" border><el-descriptions-item label="设备编号">{{ order.equipmentNo }}</el-descriptions-item><el-descriptions-item label="设备名称">{{ order.equipmentName }}</el-descriptions-item><el-descriptions-item label="所属车间">{{ order.workshopName || '-' }}</el-descriptions-item><el-descriptions-item label="负责班组">{{ order.assignedTeamName || '-' }}</el-descriptions-item><el-descriptions-item label="维修工程师">{{ order.assignedEngineerName || '待派单' }}</el-descriptions-item><el-descriptions-item label="退回次数">{{ order.acceptanceReturnCount }}</el-descriptions-item></el-descriptions></el-card>
           <el-card v-if="!isMaintenance" shadow="never"><template #header><div class="card-title"><strong>维修过程</strong><small>排查、根因、措施与结果</small></div></template><el-descriptions v-if="detail.repairRecord" :column="1" border><el-descriptions-item label="排查过程">{{ detail.repairRecord.inspectionProcess || '-' }}</el-descriptions-item><el-descriptions-item label="根因分析">{{ detail.repairRecord.rootCause || '-' }}</el-descriptions-item><el-descriptions-item label="处理措施">{{ detail.repairRecord.repairAction || '-' }}</el-descriptions-item><el-descriptions-item label="维修结果">{{ detail.repairRecord.repairResult || '-' }}</el-descriptions-item><el-descriptions-item label="维修耗时">{{ detail.repairRecord.laborHours }} 小时 · 停机 {{ detail.repairRecord.downtimeMinutes }} 分钟</el-descriptions-item></el-descriptions><el-empty v-else class="detail-empty" description="暂无维修记录" :image-size="72"/></el-card>
           <el-card v-if="!isMaintenance" shadow="never"><template #header><div class="card-heading"><div class="card-title"><strong>备件使用</strong><small>领用、退库和实际使用记录</small></div><el-button v-if="canIssueSpare" link type="primary" @click="openSpareDialog">领用备件</el-button></div></template><el-table v-if="detail.spares?.length" :data="detail.spares" size="small"><el-table-column prop="spareNo" label="编号" min-width="110"/><el-table-column prop="spareName" label="备件" min-width="120"/><el-table-column prop="specification" label="规格" min-width="110"/><el-table-column prop="warehouseName" label="仓库" min-width="110"/><el-table-column prop="issuedQty" label="领用" width="70" align="right"/><el-table-column prop="returnedQty" label="退回" width="70" align="right"/><el-table-column prop="usedQty" label="实际使用" width="80" align="right"/><el-table-column label="状态" width="90"><template #default="{row}"><el-tag size="small" :type="row.status==='RETURNED'?'info':row.status==='PARTIAL_RETURN'?'warning':'success'">{{issueStatusLabel(row.status)}}</el-tag></template></el-table-column><el-table-column v-if="canIssueSpare&&auth.hasPermission('inventory:return')" label="操作" width="70"><template #default="{row}"><el-button v-if="Number(row.usedQty)>0" link type="primary" @click="openReturnDialog(row)">退库</el-button></template></el-table-column></el-table><el-empty v-else class="detail-empty" description="本工单尚未领用备件" :image-size="72"/></el-card>

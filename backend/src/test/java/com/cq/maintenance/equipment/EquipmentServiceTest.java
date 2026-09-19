@@ -12,6 +12,7 @@ import com.cq.maintenance.equipment.service.*;
 import com.cq.maintenance.equipment.vo.*;
 import com.cq.maintenance.security.LoginUser;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.*;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,4 +31,6 @@ class EquipmentServiceTest {
     @Test void shouldReturnBackendPage(){EquipmentQuery q=new EquipmentQuery();EquipmentDataScope s=new EquipmentDataScope(true,"ALL",1L,null,List.of());when(scopes.current()).thenReturn(s);when(mapper.findPage(q,s)).thenReturn(List.of());when(mapper.countPage(q,s)).thenReturn(21L);assertEquals(21L,service.page(q).total());}
     @Test void shouldAggregateDetailHistory(){EquipmentDataScope s=new EquipmentDataScope(true,"ALL",1L,null,List.of());when(scopes.current()).thenReturn(s);Equipment e=new Equipment();e.setId(1L);when(mapper.findEquipment(1L)).thenReturn(e);EquipmentDetailRow row=new EquipmentDetailRow(1L,"E1","设备",2L,"T","类型",null,null,null,null,null,null,null,null,null,1L,"W","车间",2L,"L","产线",3L,"S","工位",null,EquipmentStatus.PENDING,BigDecimal.ZERO,"qr",null,null);when(mapper.findDetailBase(1L)).thenReturn(row);when(mapper.findStatusHistory(1L)).thenReturn(List.of());assertEquals("车间",service.detail(1L).workshopName());}
     @Test void shouldUpdateBasicInfoWithoutStatusMutation(){valid();Equipment e=new Equipment();e.setId(1L);e.setStatus(EquipmentStatus.RUNNING);when(mapper.findEquipment(1L)).thenReturn(e);EquipmentUpdateRequest r=new EquipmentUpdateRequest("EQ-1","新名称",2L,null,null,null,null,null,null,null,3L,null);service.update(1L,r);verify(mapper).updateEquipment(e);verify(mapper,never()).updateStatus(anyLong(),any(),any());}
+    @Test void runtimeHoursUpdatesSnapshotAndWritesRecord(){Equipment e=new Equipment();e.setId(1L);e.setStatus(EquipmentStatus.RUNNING);e.setRunningHours(new BigDecimal("10.50"));when(mapper.lockEquipment(1L)).thenReturn(e);RuntimeHoursRequest input=new RuntimeHoursRequest(LocalDate.of(2026,9,18),new BigDecimal("2.25"),"日常登记");service.addRuntimeHours(1L,input);verify(scopes).assertCanManage(1L);verify(mapper).updateRunningHours(1L,new BigDecimal("12.75"));verify(mapper).insertRuntimeRecord(1L,input.recordDate(),input.increment(),new BigDecimal("12.75"),1L,"日常登记");}
+    @Test void scrappedEquipmentRejectsRuntimeHours(){Equipment e=new Equipment();e.setId(1L);e.setStatus(EquipmentStatus.SCRAPPED);when(mapper.lockEquipment(1L)).thenReturn(e);assertThrows(BusinessException.class,()->service.addRuntimeHours(1L,new RuntimeHoursRequest(LocalDate.now(),BigDecimal.ONE,null)));verify(mapper,never()).updateRunningHours(anyLong(),any());}
 }

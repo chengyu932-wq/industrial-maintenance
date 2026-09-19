@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS mnt_work_order (
     completed_at DATETIME NULL COMMENT '完成时间/SLA 解决时间',
     cancelled_at DATETIME NULL COMMENT '取消时间',
     cancel_reason VARCHAR(500) NULL COMMENT '取消原因',
+    sla_rule_id BIGINT NULL COMMENT '创建时绑定的 SLA 规则 ID（逻辑关联 mnt_sla_rule.id）',
     sla_response_deadline DATETIME NULL COMMENT '响应截止时间',
     sla_resolve_deadline DATETIME NULL COMMENT '解决截止时间',
     acceptance_return_count INT NOT NULL DEFAULT 0 COMMENT '验收退回次数',

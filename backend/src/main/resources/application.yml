@@ -24,6 +24,10 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 12MB
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
@@ -46,6 +50,10 @@ management:
 
 app:
   public-base-url: ${PUBLIC_BASE_URL:http://localhost:5173}
+  storage:
+    root: ${FILE_STORAGE_ROOT:./data/uploads}
+  pdf:
+    font-path: ${PDF_FONT_PATH:C:/Windows/Fonts/Noto Sans SC (TrueType).otf}
   maintenance:
     scan-cron: ${MAINTENANCE_SCAN_CRON:0 0 * * * *}
   dispatch:

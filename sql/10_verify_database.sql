@@ -1,6 +1,6 @@
 USE industrial_maintenance;
 
--- 预期：table_count = 38。
+-- 预期：table_count = 39。
 SELECT COUNT(*) AS table_count
 FROM information_schema.tables
 WHERE table_schema = DATABASE()

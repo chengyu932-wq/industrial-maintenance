@@ -8,6 +8,9 @@ backend/src/main/resources/application-local.yml
 frontend/node_modules/
 frontend/dist/
 frontend/test-results/
+backups/
+backend/data/
+dump.rdb
 frontend/playwright-report/
 frontend/.env.local
 frontend/.env.*.local

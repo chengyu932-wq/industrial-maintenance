@@ -7,6 +7,11 @@ export const changeStatus = (id, data) => http.post(`/equipment/${id}/status`, d
 export const scrap = (id, data) => http.post(`/equipment/${id}/scrap`, data)
 export const history = (id) => http.get(`/equipment/${id}/history`)
 export const maintenanceHistory = (id) => http.get(`/equipment/${id}/maintenance-history`)
+export const runtimeHours = (id) => http.get(`/equipment/${id}/runtime-hours`)
+export const addRuntimeHours = (id, data) => http.post(`/equipment/${id}/runtime-hours`, data)
+export const attachments = (id) => http.get(`/equipment/${id}/attachments`)
+export const uploadAttachment = (id, file) => { const data = new FormData(); data.append('file', file); return http.post(`/equipment/${id}/attachments`, data) }
+export const downloadAttachment = (id, attachmentId) => http.get(`/equipment/${id}/attachments/${attachmentId}`, { responseType: 'blob' })
 export const qrCode = (id) => http.get(`/equipment/${id}/qrcode`, { responseType: 'blob' })
 export const types = () => http.get('/equipment-types')
 export const createType = (data) => http.post('/equipment-types', data)

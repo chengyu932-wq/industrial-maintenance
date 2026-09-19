@@ -1,6 +1,10 @@
 import http from './http'
 export const page = (params) => http.get('/work-orders', { params })
 export const detail = (id) => http.get(`/work-orders/${id}`)
+export const exportPdf = (id) => http.get(`/work-orders/${id}/pdf`, { responseType: 'blob' })
+export const attachments = (id) => http.get(`/work-orders/${id}/attachments`)
+export const uploadAttachment = (id, type, file) => { const data = new FormData(); data.append('file', file); return http.post(`/work-orders/${id}/attachments`, data, { params: { type } }) }
+export const downloadAttachment = (id, attachmentId) => http.get(`/work-orders/${id}/attachments/${attachmentId}`, { responseType: 'blob' })
 export const engineers = (id) => http.get(`/work-orders/${id}/engineers`)
 export const dispatchCandidates = (id) => http.get(`/work-orders/${id}/dispatch-candidates`)
 export const similar = (id) => http.get(`/work-orders/${id}/similar`)

@@ -6,6 +6,7 @@ import com.cq.maintenance.common.response.PageResult;
 import com.cq.maintenance.equipment.dto.EquipmentCreateRequest;
 import com.cq.maintenance.equipment.dto.EquipmentQuery;
 import com.cq.maintenance.equipment.dto.EquipmentUpdateRequest;
+import com.cq.maintenance.equipment.dto.RuntimeHoursRequest;
 import com.cq.maintenance.equipment.entity.Equipment;
 import com.cq.maintenance.equipment.entity.EquipmentStatus;
 import com.cq.maintenance.equipment.mapper.EquipmentMapper;
@@ -14,6 +15,7 @@ import com.cq.maintenance.equipment.vo.EquipmentDetailVO;
 import com.cq.maintenance.equipment.vo.EquipmentDetailRow;
 import com.cq.maintenance.equipment.vo.EquipmentListVO;
 import com.cq.maintenance.equipment.vo.EquipmentStatusLogVO;
+import com.cq.maintenance.equipment.vo.RuntimeHoursVO;
 import com.cq.maintenance.security.SecurityUtils;
 import java.math.BigDecimal;
 import java.util.List;
@@ -33,6 +35,8 @@ public class EquipmentService {
             d.workshopName(),d.lineId(),d.lineNo(),d.lineName(),d.stationId(),d.stationNo(),d.stationName(),d.warrantyExpireDate(),d.status(),d.runningHours(),d.qrCode(),d.createdAt(),d.updatedAt(),mapper.findStatusHistory(id));
     }
     public List<EquipmentStatusLogVO> history(Long id){assertVisible(id);return mapper.findStatusHistory(id);}
+    public List<RuntimeHoursVO> runtimeHours(Long id){assertVisible(id);return mapper.findRuntimeRecords(id);}
+    @Transactional public void addRuntimeHours(Long id,RuntimeHoursRequest input){scopes.assertCanManage(id);Equipment e=mapper.lockEquipment(id);if(e==null)throw new BusinessException(ErrorCode.NOT_FOUND,"设备不存在");if(e.getStatus()==EquipmentStatus.SCRAPPED)throw new BusinessException(ErrorCode.BUSINESS_CONFLICT,"报废设备不能新增运行小时");BigDecimal current=e.getRunningHours()==null?BigDecimal.ZERO:e.getRunningHours();BigDecimal total=current.add(input.increment()).setScale(2,java.math.RoundingMode.HALF_UP);mapper.updateRunningHours(id,total);mapper.insertRuntimeRecord(id,input.recordDate(),input.increment(),total,SecurityUtils.currentUser().userId(),input.remark()==null?null:input.remark().trim());}
     @Transactional public Long create(EquipmentCreateRequest r){
         validate(r.equipmentNo(),null,r.typeId(),r.stationId(),r.responsibleUserId(),r.responsibleTeamId());
         scopes.assertCanCreate(r.stationId(),r.responsibleTeamId());

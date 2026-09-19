@@ -68,9 +68,13 @@ public class StatisticsService {
             "%", slaAvailable, repair == null ? 0 : repair.slaCount(), "按时完成且有 SLA 的维修工单数 / 有 SLA 的已完成维修工单数 × 100%",
             "mnt_work_order.completed_at + sla_resolve_deadline", slaAvailable ? "分母仅包含具有解决截止时间的已完成维修工单" : "统计期内无已完成 SLA 样本"));
 
-        metrics.add(metric("FIRST_TIME_FIX_RATE", "一次修复率", null, "%", false, 0,
-            "同设备同标准故障类别在 7 天内未重复 / 可判定首次维修数 × 100%",
-            "需要标准故障分类或重复故障关联", "数据模型缺口：现有故障描述为自由文本，不能可靠识别同类重复故障"));
+        boolean firstTimeAvailable = repair != null && repair.completedCount() > 0;
+        metrics.add(metric("FIRST_TIME_FIX_RATE", "一次修复率（首次验收通过）",
+            firstTimeAvailable ? percent(repair.firstTimeCount(), repair.completedCount()) : null,
+            "%", firstTimeAvailable, repair == null ? 0 : repair.completedCount(),
+            "验收退回次数为 0 的已完成维修工单数 / 已完成维修工单数 × 100%",
+            "mnt_work_order.acceptance_return_count + completed_at",
+            firstTimeAvailable ? "按首次提交是否直接验收通过计算；不等同于 7 天同类故障复发率" : "统计期内无已完成维修工单"));
 
         boolean availabilityReady = availability != null && availability.observedSeconds() > 0;
         metrics.add(metric("EQUIPMENT_AVAILABILITY", "设备综合可用率",

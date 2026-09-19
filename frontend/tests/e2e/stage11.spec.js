@@ -49,7 +49,7 @@ test('1366 dashboard and statistics use real APIs with explainable KPI states', 
   await page.getByRole('link', { name: /查看完整统计分析/ }).click()
   await statisticsResponse
   await expect(page.getByRole('heading', { name: '运维统计分析' })).toBeVisible()
-  await expect(page.getByText('数据模型缺口：现有故障描述为自由文本', { exact: false })).toBeVisible()
+  await expect(page.getByText('一次修复率（首次验收通过）', { exact: true })).toBeVisible()
   await page.getByLabel('核心指标详情').screenshot({ path: `${evidenceDir}/stage11-kpi-detail-1366x768.png` })
   await page.getByText('平均故障间隔时间', { exact: true }).hover()
   await expect(page.getByText('运行小时增量合计 / 完成维修工单数', { exact: true })).toBeVisible()

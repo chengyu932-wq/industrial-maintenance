@@ -2,6 +2,7 @@ package com.cq.maintenance.equipment.controller;
 
 import com.cq.maintenance.common.response.ApiResponse;
 import com.cq.maintenance.common.response.PageResult;
+import com.cq.maintenance.common.storage.*;
 import com.cq.maintenance.equipment.dto.*;
 import com.cq.maintenance.equipment.service.*;
 import com.cq.maintenance.equipment.vo.*;
@@ -19,8 +20,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Validated @RestController @RequestMapping("/api/equipment")
 public class EquipmentController {
-    private final EquipmentService service;private final EquipmentStateService states;private final EquipmentQrCodeService qr;private final EquipmentExcelService excel;private final MaintenancePlanService maintenance;
-    public EquipmentController(EquipmentService service,EquipmentStateService states,EquipmentQrCodeService qr,EquipmentExcelService excel,MaintenancePlanService maintenance){this.service=service;this.states=states;this.qr=qr;this.excel=excel;this.maintenance=maintenance;}
+    private final EquipmentService service;private final EquipmentStateService states;private final EquipmentQrCodeService qr;private final EquipmentExcelService excel;private final MaintenancePlanService maintenance;private final EquipmentAttachmentService files;
+    public EquipmentController(EquipmentService service,EquipmentStateService states,EquipmentQrCodeService qr,EquipmentExcelService excel,MaintenancePlanService maintenance,EquipmentAttachmentService files){this.service=service;this.states=states;this.qr=qr;this.excel=excel;this.maintenance=maintenance;this.files=files;}
     @GetMapping @PreAuthorize("hasAuthority('equipment:list')") public ApiResponse<PageResult<EquipmentListVO>> page(@Valid EquipmentQuery q){return ApiResponse.success(service.page(q));}
     @GetMapping("/{id}") @PreAuthorize("hasAuthority('equipment:view')") public ApiResponse<EquipmentDetailVO> detail(@PathVariable Long id){return ApiResponse.success(service.detail(id));}
     @PostMapping @PreAuthorize("hasAuthority('equipment:add')") public ApiResponse<Long> create(@Valid @RequestBody EquipmentCreateRequest r){return ApiResponse.success(service.create(r));}
@@ -29,9 +30,15 @@ public class EquipmentController {
     @PostMapping("/{id}/scrap") @PreAuthorize("hasAuthority('equipment:scrap')") public ApiResponse<Void> scrap(@PathVariable Long id,@Valid @RequestBody ScrapRequest r){states.scrap(id,r.reason());return ApiResponse.success(null);}
     @GetMapping("/{id}/history") @PreAuthorize("hasAuthority('equipment:view')") public ApiResponse<List<EquipmentStatusLogVO>> history(@PathVariable Long id){return ApiResponse.success(service.history(id));}
     @GetMapping("/{id}/maintenance-history") @PreAuthorize("hasAuthority('maintenance:history:view')") public ApiResponse<List<MaintenanceHistoryVO>> maintenanceHistory(@PathVariable Long id){return ApiResponse.success(maintenance.equipmentHistory(id));}
+    @GetMapping("/{id}/runtime-hours") @PreAuthorize("hasAuthority('equipment:view')") public ApiResponse<List<RuntimeHoursVO>> runtimeHours(@PathVariable Long id){return ApiResponse.success(service.runtimeHours(id));}
+    @PostMapping("/{id}/runtime-hours") @PreAuthorize("hasAuthority('equipment:update')") public ApiResponse<Void> addRuntimeHours(@PathVariable Long id,@Valid @RequestBody RuntimeHoursRequest input){service.addRuntimeHours(id,input);return ApiResponse.success(null);}
+    @GetMapping("/{id}/attachments") @PreAuthorize("hasAuthority('equipment:view')") public ApiResponse<List<AttachmentVO>> attachments(@PathVariable Long id){return ApiResponse.success(files.list(id));}
+    @PostMapping(value="/{id}/attachments",consumes=MediaType.MULTIPART_FORM_DATA_VALUE) @PreAuthorize("hasAuthority('equipment:update')") public ApiResponse<Long> uploadAttachment(@PathVariable Long id,@RequestPart("file") MultipartFile file){return ApiResponse.success(files.upload(id,file));}
+    @GetMapping("/{id}/attachments/{attachmentId}") @PreAuthorize("hasAuthority('equipment:view')") public ResponseEntity<byte[]> downloadAttachment(@PathVariable Long id,@PathVariable Long attachmentId){return download(files.download(id,attachmentId));}
     @GetMapping(value="/{id}/qrcode",produces=MediaType.IMAGE_PNG_VALUE) @PreAuthorize("hasAuthority('equipment:view')") public ResponseEntity<byte[]> qrcode(@PathVariable Long id){return ResponseEntity.ok().cacheControl(CacheControl.noCache()).body(qr.png(id));}
     @GetMapping("/export") @PreAuthorize("hasAuthority('equipment:export')") public ResponseEntity<byte[]> export(@Valid EquipmentQuery q){return attachment("设备台账.xlsx",excel.export(q));}
     @GetMapping("/import-template") @PreAuthorize("hasAuthority('equipment:import')") public ResponseEntity<byte[]> template(){return attachment("设备导入模板.xlsx",excel.template());}
     @PostMapping(value="/import",consumes=MediaType.MULTIPART_FORM_DATA_VALUE) @PreAuthorize("hasAuthority('equipment:import')") public ApiResponse<ImportResultVO> importFile(@RequestPart("file") MultipartFile file){return ApiResponse.success(excel.importFile(file));}
     private ResponseEntity<byte[]> attachment(String name,byte[] body){String encoded=URLEncoder.encode(name,StandardCharsets.UTF_8).replace("+","%20");return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION,"attachment; filename*=UTF-8''"+encoded).contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")).body(body);}
+    private ResponseEntity<byte[]> download(AttachmentDownload file){String encoded=URLEncoder.encode(file.fileName(),StandardCharsets.UTF_8).replace("+","%20");MediaType type;try{type=MediaType.parseMediaType(file.contentType());}catch(Exception ignored){type=MediaType.APPLICATION_OCTET_STREAM;}return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION,"attachment; filename*=UTF-8''"+encoded).contentType(type).body(file.content());}
 }
