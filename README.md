@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-已完成第 1～11 阶段主体开发。系统已形成认证与 RBAC、组织与设备、故障维修工单、备件库存、预防性维护、智能派单与 SLA、知识沉淀与相似工单推荐、KPI 统计与 ECharts 看板闭环。第 11 阶段口径、API、真实数据验证和截图见 [实现与测试报告](docs/第11阶段实现与测试报告.md)。
+已进入第 12 阶段最终验收。系统已形成认证与 RBAC、组织与设备、故障维修工单、备件库存、预防性维护、智能派单与 SLA、知识沉淀与相似工单推荐、六项 KPI 与 ECharts 看板闭环，并补充用户管理/导入、运行小时登记、设备/工单附件、工单 PDF、AOP 审计和 MySQL 备份恢复。最终完成度与未完成项以 [第12阶段最终验收报告](docs/第12阶段最终验收报告.md) 为准；当前本机验收通过，但尚缺第二台全新主机部署证据，因此不标记为最终冻结版。
 
 ## 技术栈
 
@@ -38,7 +38,8 @@ industrial-maintenance/
 ├─ backend/      Spring Boot 后端
 ├─ frontend/     Vue 3 前端
 ├─ sql/          数据库初始化入口
-├─ docs/         项目文档说明
+├─ docs/         项目文档、测试与验收证据
+├─ scripts/      备份恢复与性能 Smoke Test
 ├─ .gitignore
 └─ README.md
 ```
@@ -112,17 +113,21 @@ sql/00_create_database.sql
 
 按 [sql/README.md](sql/README.md) 中的顺序执行全部正式脚本。认证联调时可额外执行 `sql/11_dev_auth_seed.sql`、`sql/12_stage4_permissions.sql`、`sql/13_stage4_demo_data.sql`、`sql/14_stage5_permissions.sql`、`sql/15_stage7_permissions.sql` 和 `sql/16_stage7_demo_data.sql`；五种角色测试账号统一使用仅供开发演示的密码 `DevOnly@123`。
 
-## 第 5 阶段验证
+## 最终验证
 
 ```powershell
 cd backend
-.\mvnw.cmd test
-# 同时运行第4、5阶段真实 MySQL 集成测试
-.\mvnw.cmd --% -Dstage4.db-tests=true -Dstage5.db-tests=true test
+.\mvnw.cmd '-Dstage4.db-tests=true' '-Dstage5.db-tests=true' '-Dstage6.db-tests=true' '-Dstage7.db-tests=true' '-Dstage8.db-tests=true' '-Dstage9.db-tests=true' '-Dstage10.db-tests=true' '-Dstage11.db-tests=true' '-Dstage12.db-tests=true' test
+.\mvnw.cmd -DskipTests package
 
 cd ..\frontend
 npm run build
+npm run test:e2e
 ```
+
+真实数据库测试使用被 Git 忽略的 `application-local.yml`。Playwright 还需通过环境变量提供 Redis CLI 路径和仅供开发演示的账号密码。不要把本机凭据、Token 或备份文件提交到 Git。
+
+备份恢复与定时任务配置见 [scripts/README.md](scripts/README.md)，SQL 从零初始化顺序见 [sql/README.md](sql/README.md)。最终资料入口包括：[任务书完成矩阵](docs/任务书功能完成矩阵.md)、[最终测试报告](docs/最终测试报告.md)、[论文事实基线](docs/论文事实基线.md)、[答辩事实基线](docs/答辩事实基线.md)和[截图映射](docs/论文截图映射.md)。
 
 真实数据库测试使用被 Git 忽略的 `application-local.yml` 提供本机凭据，不应提交该文件。浏览器联调截图保存在 `docs/evidence/`。
 
