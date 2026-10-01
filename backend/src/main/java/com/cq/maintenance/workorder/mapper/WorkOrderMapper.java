@@ -57,6 +57,12 @@ public interface WorkOrderMapper extends BaseMapper<WorkOrder> {
     List<WorkOrderListVO> findWorkOrderPage(@Param("q") WorkOrderQuery query,@Param("scope") WorkOrderDataScope scope);
     @Select("<script>SELECT COUNT(*)"+LIST_FROM+"<where>1=1 "+QUERY_SQL+SCOPE_SQL+"</where></script>")
     long countWorkOrderPage(@Param("q") WorkOrderQuery query,@Param("scope") WorkOrderDataScope scope);
+    String SPARE_FROM=LIST_FROM+" JOIN inv_work_order_spare i ON i.work_order_id=wo.id JOIN inv_spare_part p ON p.id=i.spare_part_id ";
+    String RETURNED="COALESCE((SELECT SUM(t.qty_change) FROM inv_transaction t WHERE t.related_transaction_id=i.transaction_id AND t.transaction_type='RETURN'),0)";
+    @Select("<script>SELECT i.id,wo.id work_order_id,wo.work_order_no,p.spare_no,p.spare_name,p.unit,i.qty issued_qty,"+RETURNED+" returned_qty,i.qty-"+RETURNED+" used_qty,i.issued_at"+SPARE_FROM+" WHERE wo.equipment_id=#{equipmentId} "+SCOPE_SQL+" ORDER BY i.issued_at DESC,i.id DESC LIMIT #{size} OFFSET #{offset}</script>")
+    List<EquipmentSpareUsageVO> findEquipmentSpareUsage(@Param("equipmentId") Long equipmentId,@Param("scope") WorkOrderDataScope scope,@Param("size") long size,@Param("offset") long offset);
+    @Select("<script>SELECT COUNT(*)"+SPARE_FROM+" WHERE wo.equipment_id=#{equipmentId} "+SCOPE_SQL+"</script>")
+    long countEquipmentSpareUsage(@Param("equipmentId") Long equipmentId,@Param("scope") WorkOrderDataScope scope);
     @Select("SELECT "+LIST_COLUMNS+LIST_FROM+" WHERE wo.id=#{id}") WorkOrderListVO findWorkOrderSummary(Long id);
     @Select("<script>SELECT COUNT(*)"+LIST_FROM+" WHERE wo.id=#{id} "+SCOPE_SQL+"</script>") long countVisible(@Param("id") Long id,@Param("scope") WorkOrderDataScope scope);
 
@@ -70,7 +76,7 @@ public interface WorkOrderMapper extends BaseMapper<WorkOrder> {
     @Update("UPDATE mnt_work_order SET status='ASSIGNED',assigned_engineer_id=#{engineerId},assigned_team_id=#{teamId},assigned_at=NOW() WHERE id=#{id} AND status='PENDING_ASSIGN'")
     int assign(@Param("id") Long id,@Param("engineerId") Long engineerId,@Param("teamId") Long teamId);
     @Update("UPDATE mnt_work_order SET accepted_at=NOW() WHERE id=#{id} AND status='ASSIGNED' AND accepted_at IS NULL") int acceptResponse(Long id);
-    @Update("<script>UPDATE mnt_work_order SET status=#{target}<if test='action == &quot;START&quot;'>,started_at=NOW()</if><if test='action == &quot;SUBMIT&quot;'>,submitted_at=NOW()</if><if test='action == &quot;ACCEPT_PASS&quot;'>,completed_at=NOW()</if><if test='action == &quot;ACCEPT_RETURN&quot;'>,acceptance_return_count=acceptance_return_count+1</if> WHERE id=#{id} AND status=#{current}</script>")
+    @Update("<script>UPDATE mnt_work_order SET status=#{target}<if test='action == &quot;START&quot;'>,started_at=NOW()</if><if test='action == &quot;SUBMIT&quot;'>,submitted_at=NOW()</if><if test='action == &quot;ACCEPT_PASS&quot; or action == &quot;CLOSE_UNREPAIRABLE&quot;'>,completed_at=NOW()</if><if test='action == &quot;ACCEPT_RETURN&quot;'>,acceptance_return_count=acceptance_return_count+1</if> WHERE id=#{id} AND status=#{current}</script>")
     int updateState(@Param("id") Long id,@Param("current") WorkOrderStatus current,@Param("target") WorkOrderStatus target,@Param("action") String action);
     @Update("UPDATE mnt_work_order SET status='CANCELLED',cancelled_at=NOW(),cancel_reason=#{reason} WHERE id=#{id} AND status=#{current}")
     int cancel(@Param("id") Long id,@Param("current") WorkOrderStatus current,@Param("reason") String reason);

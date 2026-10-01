@@ -108,6 +108,15 @@ public class StatisticsService {
             points(mapper.slaCompletion(scope, period.start(), period.end())));
     }
 
+    public StatisticsDrilldownVO drilldowns(StatisticsQuery query) {
+        Period period = period(query);
+        WorkOrderDataScope scope = workOrderScopes.current();
+        return new StatisticsDrilldownVO(period.vo(),
+            mapper.workshopDrilldown(scope, query, period.start(), period.end()),
+            mapper.equipmentTypeDrilldown(scope, query, period.start(), period.end()),
+            mapper.engineerDrilldown(scope, query, period.start(), period.end()));
+    }
+
     private Period period(StatisticsQuery query) {
         StatisticsRange range = query.getRange() == null ? StatisticsRange.LAST_30_DAYS : query.getRange();
         LocalDate today = LocalDate.now();

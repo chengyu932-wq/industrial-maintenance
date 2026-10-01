@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS mnt_work_order (
     CONSTRAINT chk_work_order_type CHECK (work_order_type IN ('REPAIR', 'MAINTENANCE')),
     CONSTRAINT chk_work_order_priority CHECK (priority IN ('URGENT', 'IMPORTANT', 'NORMAL')),
     CONSTRAINT chk_work_order_status CHECK (
-        status IN ('PENDING_ASSIGN', 'ASSIGNED', 'PROCESSING', 'SUSPENDED', 'PENDING_ACCEPT', 'COMPLETED', 'CANCELLED')
+        status IN ('PENDING_ASSIGN', 'ASSIGNED', 'PROCESSING', 'SUSPENDED', 'PENDING_ACCEPT', 'COMPLETED', 'UNREPAIRABLE', 'CANCELLED')
     ),
     CONSTRAINT chk_work_order_source CHECK (
         (work_order_type = 'REPAIR' AND repair_request_id IS NOT NULL AND pm_plan_id IS NULL)
@@ -80,8 +80,8 @@ CREATE TABLE IF NOT EXISTS mnt_work_order (
         OR status <> 'CANCELLED'
     ),
     CONSTRAINT chk_work_order_complete CHECK (
-        (status = 'COMPLETED' AND completed_at IS NOT NULL)
-        OR status <> 'COMPLETED'
+        (status IN ('COMPLETED', 'UNREPAIRABLE') AND completed_at IS NOT NULL)
+        OR status NOT IN ('COMPLETED', 'UNREPAIRABLE')
     )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='维修和保养统一工单';
 
@@ -98,13 +98,13 @@ CREATE TABLE IF NOT EXISTS mnt_work_order_flow (
     KEY idx_work_order_flow_order_time (work_order_id, created_at),
     KEY idx_work_order_flow_action_time (action, created_at),
     CONSTRAINT chk_work_order_flow_from CHECK (
-        from_status IS NULL OR from_status IN ('PENDING_ASSIGN', 'ASSIGNED', 'PROCESSING', 'SUSPENDED', 'PENDING_ACCEPT', 'COMPLETED', 'CANCELLED')
+        from_status IS NULL OR from_status IN ('PENDING_ASSIGN', 'ASSIGNED', 'PROCESSING', 'SUSPENDED', 'PENDING_ACCEPT', 'COMPLETED', 'UNREPAIRABLE', 'CANCELLED')
     ),
     CONSTRAINT chk_work_order_flow_to CHECK (
-        to_status IN ('PENDING_ASSIGN', 'ASSIGNED', 'PROCESSING', 'SUSPENDED', 'PENDING_ACCEPT', 'COMPLETED', 'CANCELLED')
+        to_status IN ('PENDING_ASSIGN', 'ASSIGNED', 'PROCESSING', 'SUSPENDED', 'PENDING_ACCEPT', 'COMPLETED', 'UNREPAIRABLE', 'CANCELLED')
     ),
     CONSTRAINT chk_work_order_flow_action CHECK (
-        action IN ('CREATE', 'ASSIGN', 'REASSIGN', 'ACCEPT', 'START', 'SUSPEND', 'RESUME', 'SUBMIT', 'ACCEPT_PASS', 'ACCEPT_RETURN', 'CANCEL')
+        action IN ('CREATE', 'ASSIGN', 'REASSIGN', 'ACCEPT', 'START', 'SUSPEND', 'RESUME', 'SUBMIT', 'ACCEPT_PASS', 'ACCEPT_RETURN', 'CLOSE_UNREPAIRABLE', 'CANCEL')
     )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='工单状态流转日志';
 

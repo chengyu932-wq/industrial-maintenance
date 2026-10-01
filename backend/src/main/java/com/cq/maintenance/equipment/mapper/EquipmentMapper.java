@@ -14,6 +14,8 @@ import org.apache.ibatis.annotations.*;
 
 @Mapper
 public interface EquipmentMapper extends BaseMapper<Equipment> {
+    @Select("SELECT COUNT(*) FROM mnt_work_order WHERE equipment_id=#{equipmentId} AND work_order_type='REPAIR' AND status IN ('PENDING_ASSIGN','ASSIGNED','PROCESSING','SUSPENDED','PENDING_ACCEPT')")
+    long countActiveRepairOrders(Long equipmentId);
     String JOIN_SQL=" FROM eqp_equipment e JOIN eqp_type t ON t.id=e.type_id JOIN org_station s ON s.id=e.station_id " +
         "JOIN org_line l ON l.id=s.line_id JOIN org_workshop w ON w.id=l.workshop_id " +
         "LEFT JOIN sys_user u ON u.id=e.responsible_user_id LEFT JOIN org_team tm ON tm.id=e.responsible_team_id ";

@@ -32,6 +32,7 @@
 | 24 | `23_stage11_statistics.sql` | 第11阶段 KPI 查询索引 |
 | 25 | `24_stage11_permissions.sql` | 第11阶段统计分析权限 |
 | 26 | `25_stage12_support.sql` | 第12阶段用户管理、批量导入与操作日志权限 |
+| 27 | `26_unrepairable_closure.sql` | 已有库升级：无法修复工单终态及流转约束 |
 
 在 MySQL 客户端中依次执行：
 
@@ -58,6 +59,7 @@ SOURCE D:/BS/industrial-maintenance/sql/22_stage10_permissions.sql;
 SOURCE D:/BS/industrial-maintenance/sql/23_stage11_statistics.sql;
 SOURCE D:/BS/industrial-maintenance/sql/24_stage11_permissions.sql;
 SOURCE D:/BS/industrial-maintenance/sql/25_stage12_support.sql;
+SOURCE D:/BS/industrial-maintenance/sql/26_unrepairable_closure.sql;
 -- 仅本地开发/答辩演示时执行：
 SOURCE D:/BS/industrial-maintenance/sql/11_dev_auth_seed.sql;
 SOURCE D:/BS/industrial-maintenance/sql/13_stage4_demo_data.sql;
@@ -99,4 +101,5 @@ DB_HEALTH_ENABLED=true
 - `23_stage11_statistics.sql`：补充运行小时按统计日期查询所需索引，不新增汇总表，不保存派生 KPI。
 - `24_stage11_permissions.sql`：增加统计分析菜单及 `statistics:view` 权限，授权管理员、运维主管、工程师和仓库管理员。
 - `25_stage12_support.sql`：增加用户管理、用户 Excel 导入和操作日志查询权限；表结构仍由基础脚本创建。
+- `26_unrepairable_closure.sql`：对已存在的工单与流转表扩展 `UNREPAIRABLE` 状态和 `CLOSE_UNREPAIRABLE` 动作约束；新建库的 `04_schema_work_order.sql` 已包含相同约束。
 - KPI 与图表直接聚合设备状态履历、维修工单、运行小时和库存流水，口径见 `docs/第11阶段KPI统计口径设计.md`。

@@ -12,10 +12,10 @@ public class WorkOrderStateService {
     private static final Map<WorkOrderStatus,Set<WorkOrderStatus>> TRANSITIONS=Map.of(
         WorkOrderStatus.PENDING_ASSIGN,Set.of(WorkOrderStatus.ASSIGNED,WorkOrderStatus.CANCELLED),
         WorkOrderStatus.ASSIGNED,Set.of(WorkOrderStatus.PROCESSING,WorkOrderStatus.CANCELLED),
-        WorkOrderStatus.PROCESSING,Set.of(WorkOrderStatus.SUSPENDED,WorkOrderStatus.PENDING_ACCEPT),
+        WorkOrderStatus.PROCESSING,Set.of(WorkOrderStatus.SUSPENDED,WorkOrderStatus.PENDING_ACCEPT,WorkOrderStatus.UNREPAIRABLE),
         WorkOrderStatus.SUSPENDED,Set.of(WorkOrderStatus.PROCESSING),
         WorkOrderStatus.PENDING_ACCEPT,Set.of(WorkOrderStatus.PROCESSING,WorkOrderStatus.COMPLETED),
-        WorkOrderStatus.COMPLETED,Set.of(),WorkOrderStatus.CANCELLED,Set.of());
+        WorkOrderStatus.COMPLETED,Set.of(),WorkOrderStatus.UNREPAIRABLE,Set.of(),WorkOrderStatus.CANCELLED,Set.of());
     private final WorkOrderMapper mapper;
     public WorkOrderStateService(WorkOrderMapper mapper){this.mapper=mapper;}
     public void created(WorkOrder order,Long operatorId){created(order,operatorId,"故障报修自动生成维修工单");}

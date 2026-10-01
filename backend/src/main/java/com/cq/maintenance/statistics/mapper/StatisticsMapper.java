@@ -1,5 +1,7 @@
 package com.cq.maintenance.statistics.mapper;
 
+import com.cq.maintenance.statistics.dto.StatisticsQuery;
+import com.cq.maintenance.statistics.vo.DrilldownPointVO;
 import com.cq.maintenance.workorder.mapper.WorkOrderMapper.WorkOrderDataScope;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,12 +23,31 @@ public interface StatisticsMapper {
         "<when test='scope.mode == &quot;ENGINEER&quot;'>wo.assigned_engineer_id=#{scope.userId}<if test='scope.teamIds != null and scope.teamIds.size() > 0'> OR wo.assigned_team_id IN <foreach collection='scope.teamIds' item='id' open='(' separator=',' close=')'>#{id}</foreach></if></when>"+
         "<when test='scope.mode == &quot;REPORTER&quot;'>rr.reporter_id=#{scope.userId}</when><otherwise>1=0</otherwise></choose>)</if>";
     String WAREHOUSE_SCOPE = " AND (#{allWarehouses}=true OR warehouse_id IN <foreach collection='warehouseIds' item='id' open='(' separator=',' close=')'>#{id}</foreach>) ";
+    String DRILLDOWN_FILTER = "<if test='query.workshopId != null'> AND w.id=#{query.workshopId}</if>"+
+        "<if test='query.equipmentTypeId != null'> AND e.type_id=#{query.equipmentTypeId}</if>"+
+        "<if test='query.engineerId != null'> AND wo.assigned_engineer_id=#{query.engineerId}</if>";
+    String DRILLDOWN_BASE = WORK_ORDER_JOIN+" JOIN eqp_type t ON t.id=e.type_id LEFT JOIN sys_user engineer ON engineer.id=wo.assigned_engineer_id"+
+        " WHERE wo.work_order_type='REPAIR' AND wo.status='COMPLETED' AND wo.completed_at&gt;=#{start} AND wo.completed_at&lt;#{end} "+
+        WORK_ORDER_SCOPE+DRILLDOWN_FILTER;
+    String DRILLDOWN_MEASURES = ",COUNT(*) completed_count,ROUND(AVG(CASE WHEN wo.started_at IS NOT NULL AND wo.completed_at&gt;=wo.started_at THEN TIMESTAMPDIFF(SECOND,wo.started_at,wo.completed_at)/3600 ELSE NULL END),2) average_repair_hours";
+
+    @Select("<script>SELECT w.id,w.workshop_name name"+DRILLDOWN_MEASURES+DRILLDOWN_BASE+
+        " GROUP BY w.id,w.workshop_name ORDER BY completed_count DESC,w.id</script>")
+    List<DrilldownPointVO> workshopDrilldown(@Param("scope") WorkOrderDataScope scope,@Param("query") StatisticsQuery query,@Param("start") LocalDateTime start,@Param("end") LocalDateTime end);
+
+    @Select("<script>SELECT t.id,t.type_name name"+DRILLDOWN_MEASURES+DRILLDOWN_BASE+
+        " GROUP BY t.id,t.type_name ORDER BY completed_count DESC,t.id</script>")
+    List<DrilldownPointVO> equipmentTypeDrilldown(@Param("scope") WorkOrderDataScope scope,@Param("query") StatisticsQuery query,@Param("start") LocalDateTime start,@Param("end") LocalDateTime end);
+
+    @Select("<script>SELECT engineer.id,COALESCE(engineer.real_name,'未派工程师') name"+DRILLDOWN_MEASURES+DRILLDOWN_BASE+
+        " GROUP BY engineer.id,engineer.real_name ORDER BY completed_count DESC,engineer.id</script>")
+    List<DrilldownPointVO> engineerDrilldown(@Param("scope") WorkOrderDataScope scope,@Param("query") StatisticsQuery query,@Param("start") LocalDateTime start,@Param("end") LocalDateTime end);
 
     @Select("<script>SELECT COUNT(*)"+EQUIPMENT_JOIN+" WHERE 1=1 "+
         "<if test='status != null'> AND e.status=#{status}</if>"+EQUIPMENT_SCOPE+"</script>")
     long countEquipment(@Param("scope") WorkOrderDataScope scope,@Param("status") String status);
 
-    @Select("<script>SELECT COUNT(*)"+WORK_ORDER_JOIN+" WHERE wo.status NOT IN ('COMPLETED','CANCELLED') "+WORK_ORDER_SCOPE+"</script>")
+    @Select("<script>SELECT COUNT(*)"+WORK_ORDER_JOIN+" WHERE wo.status NOT IN ('COMPLETED','UNREPAIRABLE','CANCELLED') "+WORK_ORDER_SCOPE+"</script>")
     long countPendingWorkOrders(@Param("scope") WorkOrderDataScope scope);
 
     @Select("<script>SELECT COUNT(*)"+WORK_ORDER_JOIN+" WHERE wo.work_order_type='REPAIR' AND wo.status='COMPLETED' AND wo.completed_at&gt;=#{start} AND wo.completed_at&lt;#{end} "+WORK_ORDER_SCOPE+"</script>")

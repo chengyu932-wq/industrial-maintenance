@@ -17,7 +17,7 @@ public class EquipmentStateService {
         EquipmentStatus.PENDING,Set.of(EquipmentStatus.RUNNING),
         EquipmentStatus.RUNNING,Set.of(EquipmentStatus.FAULT,EquipmentStatus.STOPPED),
         EquipmentStatus.FAULT,Set.of(EquipmentStatus.REPAIRING,EquipmentStatus.RUNNING,EquipmentStatus.STOPPED,EquipmentStatus.SCRAPPED),
-        EquipmentStatus.REPAIRING,Set.of(EquipmentStatus.RUNNING,EquipmentStatus.SCRAPPED),
+        EquipmentStatus.REPAIRING,Set.of(EquipmentStatus.RUNNING,EquipmentStatus.STOPPED,EquipmentStatus.SCRAPPED),
         EquipmentStatus.STOPPED,Set.of(EquipmentStatus.RUNNING,EquipmentStatus.SCRAPPED),
         EquipmentStatus.SCRAPPED,Set.of());
     private static final Map<EquipmentStatus,Set<EquipmentStatus>> MANUAL_TRANSITIONS=Map.of(
@@ -35,7 +35,7 @@ public class EquipmentStateService {
         if(!MANUAL_TRANSITIONS.getOrDefault(equipment.getStatus(),Set.of()).contains(target))throw new BusinessException(ErrorCode.ILLEGAL_STATE_TRANSITION,"故障与维修状态须由后续报修/工单流程触发，报废请使用独立接口");
         transition(equipmentId,target,reason,"MANUAL",null,SecurityUtils.currentUser().userId());
     }
-    @Transactional public void scrap(Long equipmentId,String reason){scopes.assertCanManage(equipmentId);transition(equipmentId,EquipmentStatus.SCRAPPED,reason,"SCRAP",null,SecurityUtils.currentUser().userId());}
+    @Transactional public void scrap(Long equipmentId,String reason){scopes.assertCanManage(equipmentId);if(mapper.countActiveRepairOrders(equipmentId)>0)throw new BusinessException(ErrorCode.BUSINESS_CONFLICT,"存在活动维修工单，请先完成无法修复处置");transition(equipmentId,EquipmentStatus.SCRAPPED,reason,"SCRAP",null,SecurityUtils.currentUser().userId());}
 
     @Transactional public void cancelWorkOrder(Long equipmentId,EquipmentStatus target,String reason,Long workOrderId,Long operatorId){
         if(target!=EquipmentStatus.RUNNING&&target!=EquipmentStatus.STOPPED)throw new BusinessException(ErrorCode.PARAMETER_ERROR,"取消工单后的设备状态只能为运行或停用");

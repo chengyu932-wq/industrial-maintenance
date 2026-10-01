@@ -20,6 +20,7 @@ public class WorkOrderService {
     private final WorkOrderMapper mapper;private final WorkOrderScopeService scopes;private final WorkOrderStateService states;private final EquipmentStateService equipmentStates;private final InventoryService inventory;private final MaintenanceExecutionService maintenance;
     public WorkOrderService(WorkOrderMapper mapper,WorkOrderScopeService scopes,WorkOrderStateService states,EquipmentStateService equipmentStates,InventoryService inventory,MaintenanceExecutionService maintenance){this.mapper=mapper;this.scopes=scopes;this.states=states;this.equipmentStates=equipmentStates;this.inventory=inventory;this.maintenance=maintenance;}
     public PageResult<WorkOrderListVO> page(WorkOrderQuery query){var scope=scopes.current();return PageResult.of(mapper.findWorkOrderPage(query,scope),mapper.countWorkOrderPage(query,scope),query.getPage(),query.getSize());}
+    public PageResult<EquipmentSpareUsageVO> equipmentSpareUsage(Long equipmentId,long page,long size){var scope=scopes.current();return PageResult.of(mapper.findEquipmentSpareUsage(equipmentId,scope,size,(page-1)*size),mapper.countEquipmentSpareUsage(equipmentId,scope),page,size);}
     public WorkOrderDetailVO detail(Long id){scopes.assertVisible(id);WorkOrderListVO summary=requiredSummary(id);return new WorkOrderDetailVO(summary,summary.repairRequestId()==null?null:mapper.findRepairRequest(summary.repairRequestId(),scopes.current()),mapper.findRepairRecordVO(id),inventory.workOrderSpares(id),mapper.findFlows(id));}
     public List<WorkOrderFlowVO> flows(Long id){scopes.assertVisible(id);return mapper.findFlows(id);}
     public List<EngineerOptionVO> engineers(Long id){scopes.assertCanAssign(id);LoginUser user=SecurityUtils.currentUser();List<EngineerOptionVO> all=mapper.findEngineers();if(user.roleCodes().contains("ADMIN"))return all;return all.stream().filter(e->(user.workshopId()!=null&&user.workshopId().equals(e.workshopId()))||(e.teamId()!=null&&user.teamIds().contains(e.teamId()))).toList();}
@@ -32,7 +33,7 @@ public class WorkOrderService {
         states.assign(order,engineer.id(),teamId,input.reason(),SecurityUtils.currentUser().userId());
     }
     @Transactional public void acceptResponse(Long id){WorkOrder order=requiredLockedVisible(id);scopes.assertAssignedEngineer(order);states.acceptResponse(order,SecurityUtils.currentUser().userId());}
-    @Transactional public void start(Long id){WorkOrder order=requiredLockedVisible(id);scopes.assertAssignedEngineer(order);Long operator=SecurityUtils.currentUser().userId();boolean pm=order.getWorkOrderType()==WorkOrderType.MAINTENANCE;states.transition(order,WorkOrderStatus.PROCESSING,"START",pm?"开始保养":"开始维修",operator);if(!pm)equipmentStates.transition(order.getEquipmentId(),EquipmentStatus.REPAIRING,"维修工单开始处理："+order.getWorkOrderNo(),"WORK_ORDER",order.getId(),operator);}
+    @Transactional public void start(Long id){WorkOrder order=requiredLockedVisible(id);scopes.assertAssignedEngineer(order);if(order.getAcceptedAt()==null)throw new BusinessException(ErrorCode.BUSINESS_CONFLICT,"请先确认接单再开始处理");Long operator=SecurityUtils.currentUser().userId();boolean pm=order.getWorkOrderType()==WorkOrderType.MAINTENANCE;states.transition(order,WorkOrderStatus.PROCESSING,"START",pm?"开始保养":"开始维修",operator);if(!pm)equipmentStates.transition(order.getEquipmentId(),EquipmentStatus.REPAIRING,"维修工单开始处理："+order.getWorkOrderNo(),"WORK_ORDER",order.getId(),operator);}
     @Transactional public void suspend(Long id,ReasonRequest input){WorkOrder order=requiredLockedVisible(id);scopes.assertAssignedEngineer(order);states.transition(order,WorkOrderStatus.SUSPENDED,"SUSPEND",input.reason(),SecurityUtils.currentUser().userId());}
     @Transactional public void resume(Long id,ReasonRequest input){WorkOrder order=requiredLockedVisible(id);scopes.assertAssignedEngineer(order);states.transition(order,WorkOrderStatus.PROCESSING,"RESUME",input.reason(),SecurityUtils.currentUser().userId());}
     @Transactional public void saveRepairRecord(Long id,RepairRecordRequest input){
@@ -42,6 +43,17 @@ public class WorkOrderService {
     @Transactional public void submitAcceptance(Long id){
         WorkOrder order=requiredLockedVisible(id);scopes.assertAssignedEngineer(order);if(order.getWorkOrderType()==WorkOrderType.MAINTENANCE)maintenance.assertComplete(id);else assertComplete(mapper.findRepairRecord(id));
         states.transition(order,WorkOrderStatus.PENDING_ACCEPT,"SUBMIT",order.getWorkOrderType()==WorkOrderType.MAINTENANCE?"保养完成，提交验收":"维修完成，提交验收",SecurityUtils.currentUser().userId());
+    }
+    @Transactional public void closeUnrepairable(Long id,UnrepairableCloseRequest input){
+        scopes.assertCanAssign(id);WorkOrder order=requiredLocked(id);
+        if(order.getWorkOrderType()!=WorkOrderType.REPAIR||order.getStatus()!=WorkOrderStatus.PROCESSING)throw new BusinessException(ErrorCode.ILLEGAL_STATE_TRANSITION,"仅处理中的维修工单可进行无法修复处置");
+        if(input.equipmentTargetStatus()!=EquipmentStatus.STOPPED&&input.equipmentTargetStatus()!=EquipmentStatus.SCRAPPED)throw new BusinessException(ErrorCode.PARAMETER_ERROR,"无法修复时设备只能停用或报废");
+        RepairRecord record=mapper.findRepairRecord(id);
+        if(record==null||blank(record.getInspectionProcess())||blank(record.getRootCause())||blank(record.getRepairAction())||blank(record.getRepairResult())||!Boolean.FALSE.equals(record.getRepairable()))throw new BusinessException(ErrorCode.BUSINESS_CONFLICT,"请先填写完整维修记录并标记为无法修复");
+        if(mapper.countActiveRepairOrders(order.getEquipmentId(),id)>0)throw new BusinessException(ErrorCode.BUSINESS_CONFLICT,"该设备仍有其他活动维修工单，请先处理其他工单");
+        Long operator=SecurityUtils.currentUser().userId();String reason=input.reason().trim();
+        states.transition(order,WorkOrderStatus.UNREPAIRABLE,"CLOSE_UNREPAIRABLE",reason,operator);
+        equipmentStates.transition(order.getEquipmentId(),input.equipmentTargetStatus(),reason+"："+order.getWorkOrderNo(),"WORK_ORDER",id,operator);
     }
     @Transactional public void pass(Long id,AcceptanceRequest input){
         WorkOrderListVO summary=requiredSummary(id);scopes.assertCanAccept(summary);WorkOrder order=requiredLocked(id);if(order.getWorkOrderType()==WorkOrderType.MAINTENANCE)maintenance.assertComplete(id);else assertComplete(mapper.findRepairRecord(id));Long operator=SecurityUtils.currentUser().userId();

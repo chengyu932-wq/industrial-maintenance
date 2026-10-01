@@ -1,6 +1,7 @@
 package com.cq.maintenance.statistics.dto;
 
 import java.time.LocalDate;
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -11,4 +12,7 @@ public class StatisticsQuery {
     private LocalDate startDate;
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate endDate;
+    @Positive private Long workshopId;
+    @Positive private Long equipmentTypeId;
+    @Positive private Long engineerId;
 }

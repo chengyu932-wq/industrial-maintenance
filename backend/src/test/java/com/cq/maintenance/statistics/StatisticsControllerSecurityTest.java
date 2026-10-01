@@ -8,7 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 
 class StatisticsControllerSecurityTest {
     @Test void everyStatisticsEndpointRequiresStatisticsViewPermission() {
-        for (String name : new String[]{"overview","kpis","charts"}) {
+        for (String name : new String[]{"overview","kpis","charts","drilldowns"}) {
             Method method = java.util.Arrays.stream(StatisticsController.class.getDeclaredMethods()).filter(it -> it.getName().equals(name)).findFirst().orElseThrow();
             PreAuthorize permission = method.getAnnotation(PreAuthorize.class);
             assertNotNull(permission);

@@ -35,4 +35,10 @@ public class StatisticsController {
     public ApiResponse<StatisticsChartsVO> charts(@Valid StatisticsQuery query) {
         return ApiResponse.success(service.charts(query));
     }
+
+    @GetMapping("/drilldowns")
+    @PreAuthorize("hasAuthority('statistics:view')")
+    public ApiResponse<StatisticsDrilldownVO> drilldowns(@Valid StatisticsQuery query) {
+        return ApiResponse.success(service.drilldowns(query));
+    }
 }

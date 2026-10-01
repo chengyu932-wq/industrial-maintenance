@@ -13,6 +13,8 @@ import com.cq.maintenance.dispatch.service.DispatchRecommendationService;
 import com.cq.maintenance.dispatch.vo.DispatchRecommendationVO;
 import com.cq.maintenance.workorder.service.WorkOrderPdfService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -26,6 +28,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class WorkOrderController {
     private final WorkOrderService service;private final InventoryService inventory;private final DispatchRecommendationService recommendations;private final WorkOrderPdfService pdf;private final WorkOrderAttachmentService files;public WorkOrderController(WorkOrderService service,InventoryService inventory,DispatchRecommendationService recommendations,WorkOrderPdfService pdf,WorkOrderAttachmentService files){this.service=service;this.inventory=inventory;this.recommendations=recommendations;this.pdf=pdf;this.files=files;}
     @GetMapping @PreAuthorize("hasAuthority('workorder:list')") public ApiResponse<PageResult<WorkOrderListVO>> page(@Valid WorkOrderQuery query){return ApiResponse.success(service.page(query));}
+    @GetMapping("/equipment/{equipmentId}/spare-usage") @PreAuthorize("hasAuthority('workorder:list')") public ApiResponse<PageResult<EquipmentSpareUsageVO>> equipmentSpareUsage(@PathVariable Long equipmentId,@RequestParam(defaultValue="1") @Min(1) long page,@RequestParam(defaultValue="20") @Min(1) @Max(100) long size){return ApiResponse.success(service.equipmentSpareUsage(equipmentId,page,size));}
     @GetMapping("/{id}") @PreAuthorize("hasAuthority('workorder:view')") public ApiResponse<WorkOrderDetailVO> detail(@PathVariable Long id){return ApiResponse.success(service.detail(id));}
     @GetMapping("/{id}/flows") @PreAuthorize("hasAuthority('workorder:view')") public ApiResponse<List<WorkOrderFlowVO>> flows(@PathVariable Long id){return ApiResponse.success(service.flows(id));}
     @GetMapping("/{id}/engineers") @PreAuthorize("hasAuthority('workorder:assign')") public ApiResponse<List<EngineerOptionVO>> engineers(@PathVariable Long id){return ApiResponse.success(service.engineers(id));}
@@ -37,6 +40,7 @@ public class WorkOrderController {
     @PostMapping("/{id}/resume") @PreAuthorize("hasAuthority('workorder:process')") public ApiResponse<Void> resume(@PathVariable Long id,@Valid @RequestBody ReasonRequest input){service.resume(id,input);return ApiResponse.success(null);}
     @PutMapping("/{id}/repair-record") @PreAuthorize("hasAuthority('workorder:process')") public ApiResponse<Void> repairRecord(@PathVariable Long id,@Valid @RequestBody RepairRecordRequest input){service.saveRepairRecord(id,input);return ApiResponse.success(null);}
     @PostMapping("/{id}/submit-acceptance") @PreAuthorize("hasAuthority('workorder:process')") public ApiResponse<Void> submit(@PathVariable Long id){service.submitAcceptance(id);return ApiResponse.success(null);}
+    @PostMapping("/{id}/close-unrepairable") @PreAuthorize("hasAuthority('workorder:assign')") public ApiResponse<Void> closeUnrepairable(@PathVariable Long id,@Valid @RequestBody UnrepairableCloseRequest input){service.closeUnrepairable(id,input);return ApiResponse.success(null);}
     @PostMapping("/{id}/acceptance/pass") @PreAuthorize("hasAuthority('workorder:accept')") public ApiResponse<Void> pass(@PathVariable Long id,@Valid @RequestBody AcceptanceRequest input){service.pass(id,input);return ApiResponse.success(null);}
     @PostMapping("/{id}/acceptance/reject") @PreAuthorize("hasAuthority('workorder:accept')") public ApiResponse<Void> reject(@PathVariable Long id,@Valid @RequestBody ReasonRequest input){service.reject(id,input);return ApiResponse.success(null);}
     @PostMapping("/{id}/cancel") @PreAuthorize("hasAuthority('workorder:cancel')") public ApiResponse<Void> cancel(@PathVariable Long id,@Valid @RequestBody CancelWorkOrderRequest input){service.cancel(id,input);return ApiResponse.success(null);}

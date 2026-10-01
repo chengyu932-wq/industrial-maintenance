@@ -5,7 +5,8 @@ export const workOrderStatuses = Object.freeze({
   SUSPENDED: { label: '已挂起', type: 'info', order: 4, step: 2 },
   PENDING_ACCEPT: { label: '待验收', type: 'warning', order: 5, step: 3 },
   COMPLETED: { label: '已完成', type: 'success', order: 6, step: 5 },
-  CANCELLED: { label: '已取消', type: 'info', order: 7, step: 0 },
+  UNREPAIRABLE: { label: '无法修复', type: 'danger', order: 7, step: 5 },
+  CANCELLED: { label: '已取消', type: 'info', order: 8, step: 0 },
 })
 export const repairPriorities = Object.freeze({
   URGENT: { label: '紧急', type: 'danger', order: 1 },

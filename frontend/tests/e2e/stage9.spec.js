@@ -115,8 +115,12 @@ test('1366 supervisor can inspect Top3, manually choose Top2, and use SLA messag
     await notification.click()
     expect((await markReadResponse).ok()).toBeTruthy()
     await expect(page).toHaveURL(/\/work-orders\/\d+$/)
+    const notificationListResponse = page.waitForResponse(response =>
+      /\/api\/notifications\?/.test(response.url()) && response.request().method() === 'GET')
     await page.goBack()
+    await notificationListResponse
     await expect(page.getByRole('heading', { name: '消息中心' })).toBeVisible()
+    await expect(page.locator('.notification-list .notification-row').first()).toBeVisible()
   }
   const readAll = page.getByRole('button', { name: '全部已读' })
   if (await page.getByText('未读', { exact: true }).count()) {

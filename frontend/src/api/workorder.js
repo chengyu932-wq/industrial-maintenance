@@ -1,5 +1,6 @@
 import http from './http'
 export const page = (params) => http.get('/work-orders', { params })
+export const equipmentSpareUsage = (equipmentId, params) => http.get(`/work-orders/equipment/${equipmentId}/spare-usage`, { params })
 export const detail = (id) => http.get(`/work-orders/${id}`)
 export const exportPdf = (id) => http.get(`/work-orders/${id}/pdf`, { responseType: 'blob' })
 export const attachments = (id) => http.get(`/work-orders/${id}/attachments`)
@@ -16,6 +17,7 @@ export const suspend = (id, data) => http.post(`/work-orders/${id}/suspend`, dat
 export const resume = (id, data) => http.post(`/work-orders/${id}/resume`, data)
 export const saveRepairRecord = (id, data) => http.put(`/work-orders/${id}/repair-record`, data)
 export const submitAcceptance = (id) => http.post(`/work-orders/${id}/submit-acceptance`)
+export const closeUnrepairable = (id, data) => http.post(`/work-orders/${id}/close-unrepairable`, data)
 export const pass = (id, data) => http.post(`/work-orders/${id}/acceptance/pass`, data)
 export const reject = (id, data) => http.post(`/work-orders/${id}/acceptance/reject`, data)
 export const cancel = (id, data) => http.post(`/work-orders/${id}/cancel`, data)

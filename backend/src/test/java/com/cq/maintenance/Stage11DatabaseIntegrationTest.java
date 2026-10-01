@@ -61,4 +61,12 @@ class Stage11DatabaseIntegrationTest {
     @Test void slaAvailabilityAndTurnoverMatchFrozenFormula(){supervisorLogin();assertEquals(new BigDecimal("50.00"),metric("ON_TIME_CLOSE_RATE"));assertEquals(new BigDecimal("83.33"),metric("EQUIPMENT_AVAILABILITY"));assertEquals(new BigDecimal("0.22"),metric("SPARE_PART_TURNOVER"));}
     @Test void firstTimeFixUsesFirstPassAcceptanceRecords(){supervisorLogin();var value=statistics.kpis(query()).metrics().stream().filter(v->"FIRST_TIME_FIX_RATE".equals(v.code())).findFirst().orElseThrow();assertTrue(value.available());assertEquals(new BigDecimal("100.00"),value.value());assertEquals(2,value.sampleSize());}
     @Test void chartsAreDatabaseAggregatesAndTrendIncludesEmptyDates(){supervisorLogin();var value=statistics.charts(query());assertTrue(value.equipmentStatus().stream().anyMatch(row->"RUNNING".equals(row.name())&&row.value().intValue()==1));assertTrue(value.faultEquipmentTypes().stream().anyMatch(row->row.value().intValue()==2));assertEquals(3,value.repairTrend().size());assertEquals(1,value.repairTrend().get(0).value());assertEquals(1,value.repairTrend().get(1).value());assertEquals(0,value.repairTrend().get(2).value());}
+    @Test void drilldownsHonorScopeAndCrossFilters(){
+        supervisorLogin();
+        var result=statistics.drilldowns(query());
+        assertTrue(result.workshops().stream().anyMatch(row->row.id().equals(workshop)&&row.completedCount()==2&&new BigDecimal("3.00").equals(row.averageRepairHours())));
+        assertTrue(result.engineers().stream().anyMatch(row->row.completedCount()==2));
+        StatisticsQuery filtered=query();filtered.setWorkshopId(workshop);filtered.setEquipmentTypeId(Long.MAX_VALUE);
+        assertTrue(statistics.drilldowns(filtered).equipmentTypes().isEmpty());
+    }
 }
