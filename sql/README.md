@@ -91,7 +91,7 @@ DB_HEALTH_ENABLED=true
 
 ## 设计边界
 
-- 共 39 张表，不设置 MySQL 物理外键；实体关系通过逻辑关联字段、索引和 Service 校验保证。
+- 执行27号迁移后共 40 张表，不设置 MySQL 物理外键；实体关系通过逻辑关联字段、索引和 Service 校验保证。
 - 设备状态、工单状态、角色数据范围和库存流水类型使用英文编码，并由 MySQL `CHECK` 约束兜底。
 - 设备状态履历、工单流转、库存流水、运行小时记录和操作日志不提供普通业务删除能力。
 - 库存以 `(warehouse_id, spare_part_id)` 为唯一维度，所有数量变化必须同时生成 `inv_transaction`。
@@ -103,3 +103,7 @@ DB_HEALTH_ENABLED=true
 - `25_stage12_support.sql`：增加用户管理、用户 Excel 导入和操作日志查询权限；表结构仍由基础脚本创建。
 - `26_unrepairable_closure.sql`：对已存在的工单与流转表扩展 `UNREPAIRABLE` 状态和 `CLOSE_UNREPAIRABLE` 动作约束；新建库的 `04_schema_work_order.sql` 已包含相同约束。
 - KPI 与图表直接聚合设备状态履历、维修工单、运行小时和库存流水，口径见 `docs/第11阶段KPI统计口径设计.md`。
+
+## 2026-10-01 约束对齐迁移
+
+`27_taskbook_alignment.sql` 在完成00—26号脚本后执行一次。新增报修现场附件表、PM工单计划身份快照、用户逻辑删除时间与密码版本字段，以及确认报修和删除用户权限。先备份再升级，代码与迁移一起发布，用户重新登录获取新增权限。已有工单不改状态，新的报修先确认后建单。

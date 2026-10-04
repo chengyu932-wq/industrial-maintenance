@@ -20,6 +20,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    @org.springframework.beans.factory.annotation.Autowired private AuthMapper authMapper;
     private final JwtService jwtService;
     private final TokenStore tokenStore;
     private final CurrentUserService currentUserService;
@@ -48,6 +49,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
             LoginUser user = currentUserService.load(claims.userId());
+            var account=authMapper.selectById(claims.userId());
+            long version=account.getPasswordVersion()==null?0L:account.getPasswordVersion();
+            if(!java.util.Objects.equals(claims.passwordVersion(),version)){writeError(response,ErrorCode.ACCESS_TOKEN_INVALID);return;}
             var authentication = UsernamePasswordAuthenticationToken.authenticated(user, null, user.authorities());
             SecurityContextHolder.getContext().setAuthentication(authentication);
             chain.doFilter(request, response);

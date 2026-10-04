@@ -44,6 +44,7 @@ public class UserController {
     @GetMapping("/{id}") @PreAuthorize("hasAuthority('system:user:list')") public ApiResponse<UserDetailVO> detail(@PathVariable Long id){return ApiResponse.success(service.detail(id));}
     @GetMapping("/metadata") @PreAuthorize("hasAuthority('system:user:list')") public ApiResponse<UserMetadataVO> metadata(){return ApiResponse.success(service.metadata());}
     @PostMapping @PreAuthorize("hasAuthority('system:user:add')") public ApiResponse<Long> create(@Valid @RequestBody UserCreateRequest input){return ApiResponse.success(service.create(input));}
+    @DeleteMapping("/{id}") @PreAuthorize("hasAuthority('system:user:delete')") public ApiResponse<Void> delete(@PathVariable Long id){service.delete(id);return ApiResponse.success(null);}
     @PutMapping("/{id}") @PreAuthorize("hasAuthority('system:user:update')") public ApiResponse<Void> update(@PathVariable Long id,@Valid @RequestBody UserUpdateRequest input){service.update(id,input);return ApiResponse.success(null);}
     @PutMapping("/{id}/status") @PreAuthorize("hasAuthority('system:user:update')") public ApiResponse<Void> status(@PathVariable Long id,@Valid @RequestBody UserStatusRequest input){service.status(id,input);return ApiResponse.success(null);}
     @PutMapping("/{id}/password") @PreAuthorize("hasAuthority('system:user:update')") public ApiResponse<Void> password(@PathVariable Long id,@Valid @RequestBody PasswordResetRequest input){service.resetPassword(id,input);return ApiResponse.success(null);}

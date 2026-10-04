@@ -9,7 +9,7 @@ const password = process.env.E2E_PASSWORD
 async function authenticate(request) {
   if (!redisCli || !password) throw new Error('E2E_REDIS_CLI and E2E_PASSWORD are required')
   const captcha = (await (await request.get('/api/auth/captcha')).json()).data
-  const code = execFileSync(redisCli, ['GET', `auth:captcha:${captcha.captchaId}`], { encoding: 'utf8' }).trim()
+  const code = execFileSync(redisCli, ['-n', process.env.E2E_REDIS_DB || '0', 'GET', `auth:captcha:${captcha.captchaId}`], { encoding: 'utf8' }).trim()
   const response = await request.post('/api/auth/login', {
     data: { username: 'admin', password, captchaId: captcha.captchaId, captchaCode: code },
   })
@@ -28,7 +28,7 @@ test('all five roles can sign in through the browser login form', async ({ page 
     const captchaResponse = page.waitForResponse(response => response.url().endsWith('/api/auth/captcha'))
     await page.goto('/login')
     const captcha = (await (await captchaResponse).json()).data
-    const code = execFileSync(redisCli, ['GET', `auth:captcha:${captcha.captchaId}`], { encoding: 'utf8' }).trim()
+    const code = execFileSync(redisCli, ['-n', process.env.E2E_REDIS_DB || '0', 'GET', `auth:captcha:${captcha.captchaId}`], { encoding: 'utf8' }).trim()
     await page.getByLabel('账号').fill(username)
     await page.getByLabel('密码').fill(password)
     await page.getByPlaceholder('输入验证码').fill(code)
@@ -89,15 +89,20 @@ test('stage12 task-book gap features are reachable with real backend data', asyn
   await expect(page.getByRole('button', { name: '上传附件' })).toBeVisible()
   await page.screenshot({ path: `${evidenceDir}/stage12-equipment-attachments-1366x768.png`, fullPage: true })
 
-  const orders = await request.get('/api/work-orders?page=1&size=1', { headers })
-  const order = (await orders.json()).data.records[0]
+  const running = (await (await request.get('/api/equipment?status=RUNNING&page=1&size=100',{headers})).json()).data.records
+  let submitted
+  for(const equipment of running){const response=await request.post('/api/repair-requests',{headers,data:{equipmentId:equipment.id,priority:'NORMAL',faultDescription:'浏览器附件测试',source:'PC'}});if(response.ok()){submitted=(await response.json()).data;break}}
+  expect(submitted).toBeTruthy()
+  const confirmed=await request.post(`/api/repair-requests/${submitted.repairRequestId}/confirm`,{headers})
+  expect(confirmed.ok()).toBeTruthy()
+  const order = {id:(await confirmed.json()).data.workOrderId}
   const pdf = await request.get(`/api/work-orders/${order.id}/pdf`, { headers })
   expect(pdf.ok()).toBeTruthy()
   expect(pdf.headers()['content-type']).toContain('application/pdf')
   expect((await pdf.body()).subarray(0, 4).toString()).toBe('%PDF')
 
   const orderAttachmentName = `stage12-work-order-${Date.now()}.txt`
-  const orderUpload = await request.post(`/api/work-orders/${order.id}/attachments?type=REPAIR`, {
+  const orderUpload = await request.post(`/api/work-orders/${order.id}/attachments?type=FAULT`, {
     headers,
     multipart: { file: { name: orderAttachmentName, mimeType: 'text/plain', buffer: Buffer.from('stage12 work order attachment evidence') } },
   })

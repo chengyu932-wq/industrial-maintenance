@@ -25,7 +25,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function signOut() {
     try { if (authSession.accessToken) await authApi.logout(authSession.refreshToken) }
-    finally { currentUser.value = null; clearTokens() }
+    finally { currentUser.value = null; clearTokens(); const { resetPermissionRoutes } = await import('../router'); resetPermissionRoutes() }
   }
 
   function hasPermission(code) { return permissions.value.includes(code) }

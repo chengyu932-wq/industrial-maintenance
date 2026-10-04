@@ -13,7 +13,7 @@ async function authenticate(request, username) {
   const captchaResponse = await request.get('/api/auth/captcha')
   expect(captchaResponse.ok()).toBeTruthy()
   const captcha = (await captchaResponse.json()).data
-  const code = execFileSync(redisCli, ['GET', `auth:captcha:${captcha.captchaId}`], { encoding: 'utf8' }).trim()
+  const code = execFileSync(redisCli, ['-n', process.env.E2E_REDIS_DB || '0', 'GET', `auth:captcha:${captcha.captchaId}`], { encoding: 'utf8' }).trim()
   const loginResponse = await request.post('/api/auth/login', { data: { username, password, captchaId: captcha.captchaId, captchaCode: code } })
   expect(loginResponse.ok()).toBeTruthy()
   return (await loginResponse.json()).data

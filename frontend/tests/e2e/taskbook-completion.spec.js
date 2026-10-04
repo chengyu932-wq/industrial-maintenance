@@ -9,7 +9,7 @@ test('statistics drilldown, heatmap and CSV export work in Chrome', async ({ pag
   const captchaResponse = await request.get('/api/auth/captcha')
   expect(captchaResponse.ok()).toBeTruthy()
   const captcha = (await captchaResponse.json()).data
-  const code = execFileSync(process.env.E2E_REDIS_CLI, ['GET', `auth:captcha:${captcha.captchaId}`], { encoding: 'utf8' }).trim()
+  const code = execFileSync(process.env.E2E_REDIS_CLI, ['-n', process.env.E2E_REDIS_DB || '0', 'GET', `auth:captcha:${captcha.captchaId}`], { encoding: 'utf8' }).trim()
   const loginResponse = await request.post('/api/auth/login', {
     data: { username: 'admin', password: process.env.E2E_PASSWORD, captchaId: captcha.captchaId, captchaCode: code },
   })

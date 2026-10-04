@@ -30,6 +30,8 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("local") @EnabledIfSystemProperty(named="stage7.db-tests",matches="true")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class Stage7DatabaseIntegrationTest {
+    com.cq.maintenance.repair.vo.RepairCreateVO createConfirmed(RepairRequestCreateRequest input){var before=org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();var pending=repairs.create(input);assertNull(pending.workOrderId());assertEquals("RUNNING",jdbc.queryForObject("SELECT status FROM eqp_equipment WHERE id=?",String.class,input.equipmentId()));login("supervisor","MAINTENANCE_SUPERVISOR");try{return repairs.confirm(pending.repairRequestId());}finally{org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(before);}}
+
     @Autowired DataSource dataSource;@Autowired JdbcTemplate jdbc;@Autowired InventoryService inventory;@Autowired RepairRequestService repairs;@Autowired WorkOrderService orders;
     @BeforeAll static void seed(@Autowired DataSource ds)throws Exception{try(var c=ds.getConnection()){for(String path:List.of("../sql/11_dev_auth_seed.sql","../sql/12_stage4_permissions.sql","../sql/13_stage4_demo_data.sql","../sql/14_stage5_permissions.sql","../sql/15_stage7_permissions.sql","../sql/16_stage7_demo_data.sql"))ScriptUtils.executeSqlScript(c,new EncodedResource(new FileSystemResource(path),StandardCharsets.UTF_8));}}
     @AfterEach void clear(){SecurityContextHolder.clearContext();}
@@ -56,7 +58,7 @@ class Stage7DatabaseIntegrationTest {
         inventory.inbound(new InventoryOperationRequest(wid,pid,new BigDecimal("5"),null,"闭环测试独立期初库存"));
         Long equipmentId=createRunningEquipment();
         login("reporter","REPORTER");
-        var created=repairs.create(new RepairRequestCreateRequest(equipmentId,RepairPriority.IMPORTANT,"主轴轴承异响",RepairSource.PC));
+        var created=createConfirmed(new RepairRequestCreateRequest(equipmentId,RepairPriority.IMPORTANT,"主轴轴承异响",RepairSource.PC));
         login("supervisor","MAINTENANCE_SUPERVISOR");
         orders.assign(created.workOrderId(),new DispatchRequest(user("engineer"),team(),"第7阶段闭环派单"));
         login("engineer","ENGINEER");

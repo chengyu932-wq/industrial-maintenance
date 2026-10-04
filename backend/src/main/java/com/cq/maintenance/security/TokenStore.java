@@ -27,6 +27,12 @@ public class TokenStore {
         return rawToken.equals(stored);
     }
 
+    public boolean consumeRefresh(JwtService.TokenClaims claims, String rawToken) {
+        var script = new org.springframework.data.redis.core.script.DefaultRedisScript<Long>(
+            "if redis.call('GET',KEYS[1]) == ARGV[1] then return redis.call('DEL',KEYS[1]) else return 0 end", Long.class);
+        return Long.valueOf(1).equals(redis.execute(script, java.util.List.of(refreshKey(claims.userId(), claims.tokenId())), rawToken));
+    }
+
     public void deleteRefresh(Long userId, String tokenId) { redis.delete(refreshKey(userId, tokenId)); }
     public boolean isBlacklisted(String tokenId) { return Boolean.TRUE.equals(redis.hasKey(BLACKLIST_PREFIX + tokenId)); }
 

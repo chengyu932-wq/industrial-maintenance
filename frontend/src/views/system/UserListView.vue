@@ -129,6 +129,7 @@ async function importUsers(event: Event) {
   }
 }
 
+async function remove(row:any){try{await ElMessageBox.confirm(`删除账号 ${row.username} 后将禁止登录，历史业务记录保留。`,'删除用户',{type:'warning'});await api.remove(row.id);ElMessage.success('用户已删除');await load()}catch(e:any){if(e!=='cancel')ElMessage.error(e.response?.data?.message||'删除失败')}}
 onMounted(load)
 </script>
 
@@ -154,7 +155,7 @@ onMounted(load)
         <el-table-column prop="jobTitle" label="岗位" min-width="140" />
         <el-table-column label="状态" width="90"><template #default="{ row }"><el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'">{{ row.status === 'ENABLED' ? '启用' : '停用' }}</el-tag></template></el-table-column>
         <el-table-column v-if="auth.hasPermission('system:user:update')" label="操作" width="220" fixed="right">
-          <template #default="{ row }"><el-button link type="primary" @click="openEdit(row)">编辑</el-button><el-button link type="primary" @click="reset(row)">重置密码</el-button><el-button link :type="row.status === 'ENABLED' ? 'danger' : 'success'" @click="toggle(row)">{{ row.status === 'ENABLED' ? '禁用' : '启用' }}</el-button></template>
+          <template #default="{ row }"><el-button link type="primary" @click="openEdit(row)">编辑</el-button><el-button v-permission="'system:user:delete'" link type="danger" @click="remove(row)">删除</el-button><el-button link type="primary" @click="reset(row)">重置密码</el-button><el-button link :type="row.status === 'ENABLED' ? 'danger' : 'success'" @click="toggle(row)">{{ row.status === 'ENABLED' ? '禁用' : '启用' }}</el-button></template>
         </el-table-column>
       </el-table>
     </el-card>

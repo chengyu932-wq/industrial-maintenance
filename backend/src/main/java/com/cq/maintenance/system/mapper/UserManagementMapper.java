@@ -4,12 +4,13 @@ import com.cq.maintenance.system.vo.*;
 import java.util.List;
 import org.apache.ibatis.annotations.*;
 @Mapper public interface UserManagementMapper {
- @Select("SELECT id,username,password_hash,real_name,phone,email,job_title,team_id,workshop_id,status,failed_login_count,last_login_at,created_at,updated_at FROM sys_user WHERE id=#{id}") SysUser find(Long id);
+ @Select("SELECT id,username,password_hash,real_name,phone,email,job_title,team_id,workshop_id,status,failed_login_count,last_login_at,created_at,updated_at FROM sys_user WHERE id=#{id} AND deleted_at IS NULL") SysUser find(Long id);
+ @Update("UPDATE sys_user SET status='DISABLED',deleted_at=NOW() WHERE id=#{id} AND deleted_at IS NULL") int softDelete(Long id);
  @Select("SELECT COUNT(*) FROM sys_user WHERE username=#{username}") long countUsername(String username);
  @Insert("INSERT INTO sys_user(username,password_hash,real_name,phone,email,job_title,team_id,workshop_id,status) VALUES(#{username},#{passwordHash},#{realName},#{phone},#{email},#{jobTitle},#{teamId},#{workshopId},#{status})") @Options(useGeneratedKeys=true,keyProperty="id") int insert(SysUser user);
  @Update("UPDATE sys_user SET real_name=#{realName},phone=#{phone},email=#{email},job_title=#{jobTitle},team_id=#{teamId},workshop_id=#{workshopId} WHERE id=#{id}") int update(SysUser user);
  @Update("UPDATE sys_user SET status=#{status},failed_login_count=0 WHERE id=#{id}") int updateStatus(@Param("id")Long id,@Param("status")String status);
- @Update("UPDATE sys_user SET password_hash=#{hash},failed_login_count=0 WHERE id=#{id}") int resetPassword(@Param("id")Long id,@Param("hash")String hash);
+ @Update("UPDATE sys_user SET password_hash=#{hash},password_version=password_version+1,failed_login_count=0 WHERE id=#{id}") int resetPassword(@Param("id")Long id,@Param("hash")String hash);
  @Select("SELECT COUNT(*) FROM sys_role WHERE id=#{id} AND status='ENABLED'") long countRole(Long id);
  @Select("SELECT COUNT(*) FROM org_skill WHERE id=#{id} AND status='ENABLED'") long countSkill(Long id);
  @Select("SELECT COUNT(*) FROM org_team WHERE id=#{id} AND status='ENABLED'") long countTeam(Long id);

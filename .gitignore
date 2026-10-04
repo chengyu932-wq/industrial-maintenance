@@ -27,3 +27,6 @@ Thumbs.db
 *.log
 *.tmp
 .tmp-*
+
+# Windows DPAPI backup credentials
+/data/backup-credential.xml

@@ -46,17 +46,17 @@ public class StatisticsService {
         Period period = period(query);
         WorkOrderDataScope scope = workOrderScopes.current();
         WarehouseScope warehouses = warehouses();
-        long faultCount = mapper.countCompletedRepairs(scope, period.start(), period.end());
+        long faultCount = mapper.countMtbfRepairs(scope, period.start(), period.end());
         BigDecimal runtime = zero(mapper.runtimeHours(scope, period.start(), period.end()));
         RepairAggregate repair = mapper.repairAggregate(scope, period.start(), period.end());
-        AvailabilityAggregate availability = mapper.availability(scope, period.start(), period.end());
+        AvailabilityAggregate availability = mapper.availability(scope, period.start(), period.end().isAfter(LocalDateTime.now()) ? LocalDateTime.now() : period.end());
         InventoryAggregate inventory = mapper.inventoryTurnover(warehouses.all(), warehouses.ids(), period.start(), period.end());
 
         List<KpiMetricVO> metrics = new ArrayList<>();
         boolean mtbfAvailable = faultCount > 0 && runtime.signum() > 0;
         metrics.add(metric("MTBF", "平均故障间隔时间", mtbfAvailable ? divide(runtime, BigDecimal.valueOf(faultCount)) : null,
             "小时", mtbfAvailable, faultCount, "运行小时增量合计 / 完成维修工单数",
-            "eqp_runtime_record + mnt_work_order", mtbfAvailable ? "按真实运行小时记录计算" : faultCount == 0 ? "统计期内无已完成维修故障" : "统计期内缺少运行小时记录"));
+            "eqp_runtime_record + mnt_work_order", mtbfAvailable ? "运行小时和故障数使用同一设备授权范围" : faultCount == 0 ? "统计期内无已完成维修故障" : "统计期内缺少运行小时记录"));
 
         boolean mttrAvailable = repair != null && repair.repairCount() > 0;
         metrics.add(metric("MTTR", "平均修复时间", mttrAvailable ? divide(BigDecimal.valueOf(repair.repairSeconds()), BigDecimal.valueOf(repair.repairCount() * 3600L)) : null,
@@ -84,12 +84,12 @@ public class StatisticsService {
             availabilityReady ? "样本数表示状态履历覆盖分钟数；不推算无履历时段" : "统计期内没有可计算的设备状态履历"));
 
         BigDecimal averageQty = inventory == null ? BigDecimal.ZERO : zero(inventory.averageQty());
-        boolean turnoverReady = averageQty.signum() > 0;
+        boolean turnoverReady = averageQty.signum() > 0 && inventory.unitCount() <= 1 && inventory.unknownBoundaryCount() == 0;
         metrics.add(metric("SPARE_PART_TURNOVER", "备件周转率",
             turnoverReady ? divide(zero(inventory.consumedQty()), averageQty) : null,
             "次", turnoverReady, inventory == null ? 0 : inventory.stockItemCount(),
             "净消耗数量 / ((期初库存 + 期末库存) / 2)", "inv_transaction + inv_stock",
-            turnoverReady ? "净消耗包含 OUTBOUND、ISSUE 并扣除 RETURN，排除调拨、盘点和报废" : "授权仓库的平均库存为 0 或没有库存样本"));
+            turnoverReady ? "净消耗包含 OUTBOUND、ISSUE 并扣除 RETURN，排除调拨、盘点和报废" : inventory != null && inventory.unknownBoundaryCount() > 0 ? "历史库存边界缺少流水，无法计算" : inventory != null && inventory.unitCount() > 1 ? "备件单位不一致，不能合并数量计算周转率" : "授权仓库的平均库存为 0 或没有库存样本"));
         return new StatisticsKpiVO(period.vo(), List.copyOf(metrics));
     }
 
@@ -130,6 +130,7 @@ public class StatisticsService {
             int days = range == StatisticsRange.LAST_7_DAYS ? 7 : range == StatisticsRange.LAST_90_DAYS ? 90 : 30;
             start = end.minusDays(days - 1L);
         }
+        if (end.isAfter(today)) throw new BusinessException(ErrorCode.PARAMETER_ERROR, "统计结束日期不能晚于今天");
         if (start.isAfter(end)) throw new BusinessException(ErrorCode.PARAMETER_ERROR, "统计开始日期不能晚于结束日期");
         if (start.plusYears(1).isBefore(end)) throw new BusinessException(ErrorCode.PARAMETER_ERROR, "单次统计范围不能超过一年");
         return new Period(range, start.atStartOfDay(), end.plusDays(1).atStartOfDay());

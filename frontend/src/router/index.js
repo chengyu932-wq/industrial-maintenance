@@ -7,8 +7,14 @@ const router = createRouter({
   routes: [
     { path: '/login', name: 'login', component: () => import('../views/login/LoginView.vue'), meta: { public: true } },
     { path: '/403', name: 'forbidden', component: () => import('../views/error/ForbiddenView.vue') },
-    { path: '/', component: () => import('../layout/AppLayout.vue'), children: [
+    { path: '/', name: 'app', component: () => import('../layout/AppLayout.vue'), children: [
       { path: '', name: 'home', component: () => import('../views/HomeView.vue') },
+    ] },
+    { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('../views/error/NotFoundView.vue'), meta: { public: true } },
+  ],
+})
+
+const businessRoutes = [
       { path: 'system/users', name: 'users', component: () => import('../views/system/UserListView.vue'), meta: { permission: 'system:user:list' } },
       { path: 'organization', name: 'organization', component: () => import('../views/organization/OrganizationView.vue'), meta: { title: '组织结构', permission: 'organization:list' } },
       { path: 'equipment', name: 'equipment', component: () => import('../views/equipment/EquipmentListView.vue'), meta: { title: '设备台账', permission: 'equipment:list' } },
@@ -25,17 +31,26 @@ const router = createRouter({
       { path: 'spare-parts', name: 'spare-parts', component: () => import('../views/inventory/SparePartView.vue'), meta: { title: '备件管理', permission: 'spare:list' } },
       { path: 'inventory/stocks', name: 'inventory-stocks', component: () => import('../views/inventory/InventoryView.vue'), meta: { title: '库存管理', permission: 'inventory:stock:list' } },
       { path: 'inventory/transactions', name: 'inventory-transactions', component: () => import('../views/inventory/TransactionView.vue'), meta: { title: '库存流水', permission: 'inventory:transaction:list' } },
-    ] },
-    { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('../views/error/NotFoundView.vue'), meta: { public: true } },
-  ],
-})
-
+]
+let routeRemovers=[]
+let routeSignature=''
+export function resetPermissionRoutes(){routeRemovers.forEach(remove=>remove());routeRemovers=[];routeSignature=''}
+export function syncPermissionRoutes(auth){
+ const signature=JSON.stringify([auth.currentUser?.userId,auth.permissions])
+ if(signature===routeSignature)return false
+ routeRemovers.forEach(remove=>remove());routeRemovers=[]
+ for(const route of businessRoutes)if(!route.meta?.permission||auth.hasPermission(route.meta.permission))routeRemovers.push(router.addRoute('app',route))
+ routeSignature=signature;return true
+}
 router.beforeEach(async (to) => {
   const auth = useAuthStore(pinia)
+  if (to.name==='not-found' && auth.isAuthenticated){try{if(!auth.currentUser)await auth.fetchCurrentUser();if(syncPermissionRoutes(auth))return to.fullPath}catch{return {name:'login'}}}
+  if (to.name==='not-found' && businessRoutes.some(route=>new RegExp('^/'+route.path.replace(':id','[^/]+')+'/?$').test(to.path))) return auth.isAuthenticated?{name:'forbidden'}:{name:'login',query:{redirect:to.fullPath}}
   if (to.meta.public) return to.name === 'login' && auth.isAuthenticated ? { name: 'home' } : true
   if (!auth.isAuthenticated) return { name: 'login', query: { redirect: to.fullPath } }
   try { if (!auth.currentUser) await auth.fetchCurrentUser() }
   catch { return { name: 'login', query: { redirect: to.fullPath } } }
+  if(syncPermissionRoutes(auth))return to.fullPath
   if (to.meta.permission && !auth.hasPermission(to.meta.permission)) return { name: 'forbidden' }
   if (to.meta.role && !auth.hasRole(to.meta.role)) return { name: 'forbidden' }
   return true

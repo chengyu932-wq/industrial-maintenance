@@ -163,3 +163,7 @@ npx playwright test tests/e2e/stage11.spec.js
 - 连续 5 次账号密码错误后锁定 10 分钟；计数与锁均有 TTL。
 - 退出登录会将 Access Token 按剩余有效期加入黑名单，并删除关联 Refresh Token。
 - 为便于本科项目演示，前端把双 Token 保存到 `localStorage`，刷新页面后可恢复登录。该方案存在 XSS 读取风险，生产系统应结合严格 CSP、依赖审计，并优先评估 HttpOnly Secure Cookie。
+
+## 任务书与开题约束对齐（2026-10-01）
+
+本轮实现报修待确认后唯一建单、报修现场资料、动态业务路由、用户逻辑删除、设备类型Redis缓存、归档提示、人工改派与推荐快照，并修复附件阶段权限、预警重算、PM身份与KPI边界、密码重置和并发刷新。部署前执行 `sql/27_taskbook_alignment.sql` 一次。详见 [功能矩阵](docs/任务书功能完成矩阵.md) 与 [升级/备份部署说明](docs/taskbook-alignment-deployment.md)。

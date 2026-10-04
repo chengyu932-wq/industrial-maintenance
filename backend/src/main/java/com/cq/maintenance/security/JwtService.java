@@ -23,11 +23,14 @@ public class JwtService {
     }
 
     public IssuedToken issue(Long userId, String username, String type) {
+        return issue(userId,username,type,0L);
+    }
+    public IssuedToken issue(Long userId, String username, String type, Long passwordVersion) {
         Instant now = Instant.now();
         Instant expiresAt = now.plus(ACCESS.equals(type) ? properties.getAccessTokenTtl() : properties.getRefreshTokenTtl());
         String tokenId = UUID.randomUUID().toString();
         String value = Jwts.builder().id(tokenId).subject(userId.toString()).claim("username", username)
-            .claim("tokenType", type).issuedAt(Date.from(now)).expiration(Date.from(expiresAt))
+            .claim("passwordVersion", passwordVersion == null ? 0L : passwordVersion).claim("tokenType", type).issuedAt(Date.from(now)).expiration(Date.from(expiresAt))
             .signWith(key).compact();
         return new IssuedToken(value, tokenId, expiresAt);
     }
@@ -35,9 +38,11 @@ public class JwtService {
     public TokenClaims parse(String token) {
         Claims claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
         return new TokenClaims(Long.valueOf(claims.getSubject()), claims.get("username", String.class),
-            claims.get("tokenType", String.class), claims.getId(), claims.getExpiration().toInstant());
+            claims.get("tokenType", String.class), claims.getId(), claims.getExpiration().toInstant(), claims.get("passwordVersion", Long.class) == null ? 0L : claims.get("passwordVersion", Long.class));
     }
 
     public record IssuedToken(String value, String tokenId, Instant expiresAt) {}
-    public record TokenClaims(Long userId, String username, String tokenType, String tokenId, Instant expiresAt) {}
+    public record TokenClaims(Long userId, String username, String tokenType, String tokenId, Instant expiresAt, Long passwordVersion) {
+        public TokenClaims(Long userId,String username,String tokenType,String tokenId,Instant expiresAt){this(userId,username,tokenType,tokenId,expiresAt,0L);}
+    }
 }

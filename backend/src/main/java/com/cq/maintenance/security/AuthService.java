@@ -60,12 +60,14 @@ public class AuthService {
 
     public TokenVO refresh(String refreshToken) {
         JwtService.TokenClaims claims = parse(refreshToken, ErrorCode.REFRESH_TOKEN_INVALID);
-        if (!JwtService.REFRESH.equals(claims.tokenType()) || !tokenStore.isRefreshValid(claims, refreshToken)) {
+        if (!JwtService.REFRESH.equals(claims.tokenType()) || !tokenStore.consumeRefresh(claims, refreshToken)) {
             throw new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID);
         }
         LoginUser user = currentUserService.load(claims.userId());
-        tokenStore.deleteRefresh(claims.userId(), claims.tokenId());
-        TokenPair pair = issuePair(user);
+        var account=authMapper.selectById(claims.userId());
+        long version=account.getPasswordVersion()==null?0L:account.getPasswordVersion();
+        if(!java.util.Objects.equals(claims.passwordVersion(),version))throw new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID);
+        TokenPair pair = issuePair(user,version);
         return new TokenVO(pair.access().value(), pair.refresh().value(), properties.getAccessTokenTtl().toSeconds());
     }
 
@@ -81,7 +83,7 @@ public class AuthService {
         if (optionalRefreshToken != null && !optionalRefreshToken.isBlank()) {
             try {
                 JwtService.TokenClaims refresh = jwtService.parse(optionalRefreshToken);
-                if (JwtService.REFRESH.equals(refresh.tokenType())) tokenStore.deleteRefresh(refresh.userId(), refresh.tokenId());
+                if (JwtService.REFRESH.equals(refresh.tokenType()) && access.userId().equals(refresh.userId())) tokenStore.deleteRefresh(refresh.userId(), refresh.tokenId());
             } catch (JwtException | IllegalArgumentException ignored) {
                 // Logout remains idempotent when the optional refresh token is already invalid.
             }
@@ -89,8 +91,12 @@ public class AuthService {
     }
 
     private TokenPair issuePair(LoginUser user) {
-        JwtService.IssuedToken access = jwtService.issue(user.userId(), user.username(), JwtService.ACCESS);
-        JwtService.IssuedToken refresh = jwtService.issue(user.userId(), user.username(), JwtService.REFRESH);
+        var account=authMapper.selectById(user.userId());
+        return issuePair(user,account.getPasswordVersion());
+    }
+    private TokenPair issuePair(LoginUser user,Long version){
+        JwtService.IssuedToken access = jwtService.issue(user.userId(), user.username(), JwtService.ACCESS,version);
+        JwtService.IssuedToken refresh = jwtService.issue(user.userId(), user.username(), JwtService.REFRESH,version);
         tokenStore.savePair(user.userId(), access, refresh);
         return new TokenPair(access, refresh);
     }

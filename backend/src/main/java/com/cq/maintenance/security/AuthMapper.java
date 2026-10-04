@@ -12,7 +12,7 @@ import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface AuthMapper extends BaseMapper<SysUser> {
-    @Select("SELECT * FROM sys_user WHERE username = #{username} LIMIT 1")
+    @Select("SELECT * FROM sys_user WHERE username = #{username} AND deleted_at IS NULL LIMIT 1")
     SysUser findByUsername(@Param("username") String username);
 
     @Select("SELECT role_code FROM sys_role r JOIN sys_user_role ur ON ur.role_id=r.id " +
@@ -35,7 +35,7 @@ public interface AuthMapper extends BaseMapper<SysUser> {
     @Select("SELECT warehouse_id FROM inv_warehouse_user WHERE user_id=#{userId} ORDER BY warehouse_id")
     List<Long> findWarehouseIds(@Param("userId") Long userId);
 
-    @Select("SELECT id,username,real_name,job_title,team_id,workshop_id,status FROM sys_user ORDER BY id")
+    @Select("SELECT id,username,real_name,job_title,team_id,workshop_id,status FROM sys_user WHERE deleted_at IS NULL ORDER BY id")
     List<UserSummaryVO> findUsers();
 
     @Update("UPDATE sys_user SET last_login_at=CURRENT_TIMESTAMP, failed_login_count=0 WHERE id=#{userId}")

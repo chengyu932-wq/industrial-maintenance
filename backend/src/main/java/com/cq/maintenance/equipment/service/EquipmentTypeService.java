@@ -13,9 +13,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class EquipmentTypeService {
     private final EquipmentMapper mapper;
     public EquipmentTypeService(EquipmentMapper mapper){this.mapper=mapper;}
-    public List<EquipmentType> list(){return mapper.findTypes();}
+    @org.springframework.cache.annotation.Cacheable(value="equipment-types",key="'all'") public List<EquipmentType> list(){return new java.util.ArrayList<>(mapper.findTypes());}
+    @org.springframework.cache.annotation.CacheEvict(value="equipment-types",allEntries=true)
     @Transactional public void create(EquipmentTypeRequest r){unique(r.typeCode(),null);EquipmentType t=copy(new EquipmentType(),r);mapper.insertType(t);}
+    @org.springframework.cache.annotation.CacheEvict(value="equipment-types",allEntries=true)
     @Transactional public void update(Long id,EquipmentTypeRequest r){EquipmentType t=required(id);unique(r.typeCode(),id);mapper.updateType(copy(t,r));}
+    @org.springframework.cache.annotation.CacheEvict(value="equipment-types",allEntries=true)
     @Transactional public void delete(Long id){required(id);if(mapper.countEquipmentByType(id)>0)throw new BusinessException(ErrorCode.BUSINESS_CONFLICT,"设备类型已被设备引用，请改为停用");mapper.deleteType(id);}
     private EquipmentType required(Long id){EquipmentType t=mapper.findType(id);if(t==null)throw new BusinessException(ErrorCode.NOT_FOUND,"设备类型不存在");return t;}
     private void unique(String code,Long id){if(mapper.countTypeCode(code,id)>0)throw new BusinessException(ErrorCode.BUSINESS_CONFLICT,"设备类型编码已存在");}

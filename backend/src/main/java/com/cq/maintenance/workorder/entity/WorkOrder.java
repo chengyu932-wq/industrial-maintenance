@@ -13,6 +13,8 @@ public class WorkOrder {
     private WorkOrderType workOrderType;
     private Long repairRequestId;
     private Long pmPlanId;
+    private String pmPlanNoSnapshot;
+    private String pmPlanNameSnapshot;
     private Long equipmentId;
     private RepairPriority priority;
     private WorkOrderStatus status;

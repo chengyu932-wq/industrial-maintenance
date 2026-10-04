@@ -18,13 +18,21 @@ public class WorkOrderStateService {
         WorkOrderStatus.COMPLETED,Set.of(),WorkOrderStatus.UNREPAIRABLE,Set.of(),WorkOrderStatus.CANCELLED,Set.of());
     private final WorkOrderMapper mapper;
     public WorkOrderStateService(WorkOrderMapper mapper){this.mapper=mapper;}
-    public void created(WorkOrder order,Long operatorId){created(order,operatorId,"故障报修自动生成维修工单");}
+    public void created(WorkOrder order,Long operatorId){created(order,operatorId,"主管确认报修后生成维修工单");}
     public void created(WorkOrder order,Long operatorId,String remark){mapper.insertFlow(order.getId(),null,WorkOrderStatus.PENDING_ASSIGN,"CREATE",operatorId,remark);}
     public void assign(WorkOrder order,Long engineerId,Long teamId,String reason,Long operatorId){
         require(order,WorkOrderStatus.PENDING_ASSIGN,WorkOrderStatus.ASSIGNED);
         if(mapper.assign(order.getId(),engineerId,teamId)!=1)duplicate();
         mapper.insertAssignment(order.getId(),engineerId,teamId,reason,operatorId);
         mapper.insertFlow(order.getId(),order.getStatus(),WorkOrderStatus.ASSIGNED,"ASSIGN",operatorId,blankToNull(reason));
+    }
+    public void reassign(WorkOrder order,Long engineerId,Long teamId,String reason,Long operatorId){
+        if(order.getStatus()!=WorkOrderStatus.ASSIGNED||order.getAcceptedAt()!=null)throw new BusinessException(ErrorCode.ILLEGAL_STATE_TRANSITION,"只能改派尚未接单的工单");
+        if(engineerId.equals(order.getAssignedEngineerId()))throw new BusinessException(ErrorCode.BUSINESS_CONFLICT,"目标工程师与当前指派相同");
+        if(reason==null||reason.isBlank())throw new BusinessException(ErrorCode.PARAMETER_ERROR,"改派原因不能为空");
+        if(mapper.reassign(order.getId(),engineerId,teamId)!=1)duplicate();
+        mapper.insertReassignment(order,engineerId,teamId,reason.trim(),operatorId);
+        mapper.insertFlow(order.getId(),WorkOrderStatus.ASSIGNED,WorkOrderStatus.ASSIGNED,"REASSIGN",operatorId,reason.trim());
     }
     public void acceptResponse(WorkOrder order,Long operatorId){
         if(order.getStatus()!=WorkOrderStatus.ASSIGNED)illegal(order,WorkOrderStatus.ASSIGNED);

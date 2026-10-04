@@ -25,12 +25,20 @@ public class WorkOrderService {
     public List<WorkOrderFlowVO> flows(Long id){scopes.assertVisible(id);return mapper.findFlows(id);}
     public List<EngineerOptionVO> engineers(Long id){scopes.assertCanAssign(id);LoginUser user=SecurityUtils.currentUser();List<EngineerOptionVO> all=mapper.findEngineers();if(user.roleCodes().contains("ADMIN"))return all;return all.stream().filter(e->(user.workshopId()!=null&&user.workshopId().equals(e.workshopId()))||(e.teamId()!=null&&user.teamIds().contains(e.teamId()))).toList();}
 
+    @org.springframework.beans.factory.annotation.Autowired private com.cq.maintenance.dispatch.service.DispatchRecommendationService recommendations;
     @Transactional public void assign(Long id,DispatchRequest input){
         scopes.assertCanAssign(id);WorkOrder order=requiredLocked(id);EngineerOptionVO engineer=mapper.findEngineer(input.engineerId());if(engineer==null)throw new BusinessException(ErrorCode.BUSINESS_CONFLICT,"目标用户不存在、已禁用或不具备工程师角色");
         Long teamId=input.teamId()==null?engineer.teamId():input.teamId();if(teamId==null||mapper.countEnabledTeam(teamId)==0)throw new BusinessException(ErrorCode.BUSINESS_CONFLICT,"目标工程师未关联有效班组");
         if(!teamId.equals(engineer.teamId()))throw new BusinessException(ErrorCode.BUSINESS_CONFLICT,"目标工程师不属于所选班组");
         if(!SecurityUtils.currentUser().roleCodes().contains("ADMIN")&&engineers(id).stream().noneMatch(e->e.id().equals(engineer.id())))throw new BusinessException(ErrorCode.DATA_FORBIDDEN,"目标工程师不在当前主管允许范围");
-        states.assign(order,engineer.id(),teamId,input.reason(),SecurityUtils.currentUser().userId());
+        String snapshot=null;
+        if(Boolean.TRUE.equals(input.recommended())){
+            var candidate=recommendations.recommend(id).stream().filter(c->c.engineerId().equals(engineer.id())).findFirst().orElseThrow(()->new BusinessException(ErrorCode.BUSINESS_CONFLICT,"推荐结果已变化，请刷新后重新选择"));
+            try{snapshot=new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(candidate);}catch(com.fasterxml.jackson.core.JsonProcessingException e){throw new IllegalStateException("派单快照保存失败",e);}
+        }
+        if(order.getStatus()==WorkOrderStatus.ASSIGNED)states.reassign(order,engineer.id(),teamId,input.reason(),SecurityUtils.currentUser().userId());
+        else states.assign(order,engineer.id(),teamId,input.reason(),SecurityUtils.currentUser().userId());
+        mapper.updateAssignmentSource(id,Boolean.TRUE.equals(input.recommended())?"RECOMMENDED":"MANUAL",snapshot);
     }
     @Transactional public void acceptResponse(Long id){WorkOrder order=requiredLockedVisible(id);scopes.assertAssignedEngineer(order);states.acceptResponse(order,SecurityUtils.currentUser().userId());}
     @Transactional public void start(Long id){WorkOrder order=requiredLockedVisible(id);scopes.assertAssignedEngineer(order);if(order.getAcceptedAt()==null)throw new BusinessException(ErrorCode.BUSINESS_CONFLICT,"请先确认接单再开始处理");Long operator=SecurityUtils.currentUser().userId();boolean pm=order.getWorkOrderType()==WorkOrderType.MAINTENANCE;states.transition(order,WorkOrderStatus.PROCESSING,"START",pm?"开始保养":"开始维修",operator);if(!pm)equipmentStates.transition(order.getEquipmentId(),EquipmentStatus.REPAIRING,"维修工单开始处理："+order.getWorkOrderNo(),"WORK_ORDER",order.getId(),operator);}

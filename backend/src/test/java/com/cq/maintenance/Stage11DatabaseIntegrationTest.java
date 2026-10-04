@@ -69,4 +69,6 @@ class Stage11DatabaseIntegrationTest {
         StatisticsQuery filtered=query();filtered.setWorkshopId(workshop);filtered.setEquipmentTypeId(Long.MAX_VALUE);
         assertTrue(statistics.drilldowns(filtered).equipmentTypes().isEmpty());
     }
+    @Test @org.springframework.transaction.annotation.Transactional void historicTurnoverIgnoresCurrentBalance(){supervisorLogin();var before=metric("SPARE_PART_TURNOVER");jdbc.update("UPDATE inv_stock SET current_qty=99999 WHERE warehouse_id=? AND spare_part_id=?",warehouse,spare);assertEquals(before,metric("SPARE_PART_TURNOVER"));}
+
 }

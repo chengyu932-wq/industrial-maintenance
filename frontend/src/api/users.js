@@ -12,3 +12,5 @@ export const importFile = (file) => {
   data.append('file', file)
   return http.post('/users/import', data, { headers: { 'Content-Type': 'multipart/form-data' } })
 }
+
+export const remove = (id) => http.delete(`/users/${id}`)
