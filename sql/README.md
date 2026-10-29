@@ -33,6 +33,7 @@
 | 25 | `24_stage11_permissions.sql` | 第11阶段统计分析权限 |
 | 26 | `25_stage12_support.sql` | 第12阶段用户管理、批量导入与操作日志权限 |
 | 27 | `26_unrepairable_closure.sql` | 已有库升级：无法修复工单终态及流转约束 |
+| 28 | `27_taskbook_alignment.sql` | 执行一次：报修附件、确认权限、PM 身份快照及用户增量字段 |
 
 在 MySQL 客户端中依次执行：
 
@@ -60,6 +61,7 @@ SOURCE D:/BS/industrial-maintenance/sql/23_stage11_statistics.sql;
 SOURCE D:/BS/industrial-maintenance/sql/24_stage11_permissions.sql;
 SOURCE D:/BS/industrial-maintenance/sql/25_stage12_support.sql;
 SOURCE D:/BS/industrial-maintenance/sql/26_unrepairable_closure.sql;
+SOURCE D:/BS/industrial-maintenance/sql/27_taskbook_alignment.sql;
 -- 仅本地开发/答辩演示时执行：
 SOURCE D:/BS/industrial-maintenance/sql/11_dev_auth_seed.sql;
 SOURCE D:/BS/industrial-maintenance/sql/13_stage4_demo_data.sql;
@@ -70,6 +72,7 @@ SOURCE D:/BS/industrial-maintenance/sql/20_stage9_demo_data.sql;
 ## 初始化与重复执行
 
 - 建表脚本使用 `CREATE TABLE IF NOT EXISTS`，初始化数据使用业务唯一键进行幂等更新；同一结构可重复执行。
+- 上述幂等说明不适用于全部增量迁移。`27_taskbook_alignment.sql` 含非幂等 `ALTER TABLE ADD COLUMN`，仅在完成 00—26 号脚本且尚未执行第 27 号迁移的数据库中执行一次。现有库应先备份、核对迁移状态，再按[部署说明](../docs/taskbook-alignment-deployment.md)升级，不要重跑整段初始化示例。
 - 该方案用于从空库初始化，不承担已存在旧表的在线结构迁移。字段变更后应编写独立迁移脚本或在开发环境重建空库。
 - 项目不会自动删除已有数据库。确需重建时，应由开发者确认目标是本地开发库后手动删除并重新执行全部脚本。
 - `09_init_data.sql` 不创建管理员账号，也不保存默认明文密码。管理员账号应在认证模块阶段通过安全的开发初始化机制创建，并使用 BCrypt 哈希。
