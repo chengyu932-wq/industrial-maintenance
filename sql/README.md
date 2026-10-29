@@ -102,7 +102,7 @@ DB_HEALTH_ENABLED=true
 - `24_stage11_permissions.sql`：增加统计分析菜单及 `statistics:view` 权限，授权管理员、运维主管、工程师和仓库管理员。
 - `25_stage12_support.sql`：增加用户管理、用户 Excel 导入和操作日志查询权限；表结构仍由基础脚本创建。
 - `26_unrepairable_closure.sql`：对已存在的工单与流转表扩展 `UNREPAIRABLE` 状态和 `CLOSE_UNREPAIRABLE` 动作约束；新建库的 `04_schema_work_order.sql` 已包含相同约束。
-- KPI 与图表直接聚合设备状态履历、维修工单、运行小时和库存流水，口径见 `docs/第11阶段KPI统计口径设计.md`。
+- KPI 与图表直接聚合设备状态履历、维修工单、运行小时和库存流水，口径见 `docs/KPI统计口径设计.md`。
 
 ## 2026-10-01 约束对齐迁移
 
